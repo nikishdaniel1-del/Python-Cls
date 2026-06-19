@@ -5,3 +5,9 @@ stream = 'DanIEl'
     print(i)'''
 
 # concatenation
+'''newString = stream+' y'
+print(newString)'''
+
+# multiplication
+'''newString = stream*2
+print(newString)'''
