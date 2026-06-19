@@ -1,7 +1,0 @@
-# arithmetic Operator
-
-# logical 
-
-# bitwise
-
-# 
