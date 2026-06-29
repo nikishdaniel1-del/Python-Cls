@@ -38,7 +38,7 @@ for x in stream:
     index += 1
 print(result)'''
 
-stream = 'Java is a power language'
+'''stream = 'Java is a power language'
 largest = currentLength = 0
 result = currentWord = ''
 for i in stream+' ':
@@ -51,4 +51,49 @@ for i in stream+' ':
     else:
         currentLength += 1
         currentWord += i
-print(result)
+print(result)'''
+
+# Count Digits, Alphabets, and Special Characters.
+# Example : Java@123 , o/p : Letters: 4,Digits: 3,Special: 1
+
+'''stream = 'Java@123'
+result = [0,0,0]
+for i in stream:
+    if i.isdigit():result[0] += 1
+    elif i.isalpha():result[1] += 1
+    else:result[2] += 1
+print(result)'''
+
+# Check Rotation. (Example : ABCD,CDAB , Rotation)
+'''string1 = 'ABCD'
+string2 = 'CDBA'
+left = ''
+if string1==string2:
+    print(True)
+    quit()
+for i in string1:
+    if string1+left==string2:
+        print(True)
+        quit()
+    left += i
+    string1 = string1[1:]
+print(False)'''
+
+# Reverse Words in a Sentence. 
+# Example : Java is awesome , o/p : awesome is Java
+
+string1 = 'Java is awesome'
+# method 1
+'''output = ''
+for i in string1.split()[::-1]:
+    output += i+' '
+print(output.strip())
+'''
+# method 2
+'''result = currentWord = ''
+for i in string1+' ':
+    if i == ' ':
+        result = ' '+currentWord+result
+        currentWord = ''
+    else:currentWord += i
+print(result[1:])'''
