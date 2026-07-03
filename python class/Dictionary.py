@@ -44,5 +44,17 @@ for i in range(len(pattern)):
     stream[currentWord] = currentMatch
 print(True)'''
 
-["eat","tea","tan","ate","nat","bat"]
-{"a1e1t1":["eat","tea","ate"],"a1n1t1":["tan","nat"],"a1b1t1":["bat"]}
+stream = ["eat","tea","tan","ate","nat","bat"]
+result = {}
+for i in stream:
+    data = {}
+    for x in i:
+        if x not in data:data[x] = 0
+        data[x] += 1
+    compressedString = ''
+    for x in sorted(data):
+        compressedString += x+str(data[x])
+    if compressedString not in result:
+        result[compressedString] = []
+    result[compressedString].append(i)
+print(result)
