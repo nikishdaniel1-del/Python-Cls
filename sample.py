@@ -1,4 +1,4 @@
-m = 6 ; n = 16
+'''m = 6 ; n = 16
 result = []
 nLimit = n-1
 for i in range(m):
@@ -9,7 +9,17 @@ for i in range(m):
         else:remaining = '.'+'#'*(n-i-2)
     resultantString = '#'*i+'.'+remaining
     result.append(resultantString)
-print(result)
+print(result)'''
 
 # ['..##############', '#..#############', '##..############', '###..###########', '####..##########', '#####...........']
 
+#3975
+
+occupiedIntervals = [[2,6],[4,8],[10,10],[10,12],[14,16]]; freeStart = 7; freeEnd = 11
+sortedIntervals = sorted(occupiedIntervals)
+stream = [sortedIntervals.pop(0)]
+for i in sortedIntervals:
+    first , last = i
+    previousLast = stream[-1][1]
+    if first>previousLast:stream.append(i)
+    elif last>previousLast:stream[-1][1] = i[1]

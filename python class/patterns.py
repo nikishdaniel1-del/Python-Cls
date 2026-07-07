@@ -84,4 +84,40 @@ for i in range(row):
     else:index+=1'''
 
 # Butterfly Pattern 
-# for i in range(row):
+'''reverse = 0
+index = 1
+half = row//2
+for i in range(row):
+    if i==half:
+        reverse=1
+        index -= 1
+        if row%2:print(('* '*row).strip());continue
+    print(('* '*index+'  '*(row-(2*index))+'* '*index).strip())
+    index += -1 if reverse else 1'''
+    
+# Hourglass Pattern
+'''pattern = '*'
+index = reverse = 0
+half = row//2
+for i in range(row):
+    if i==half:
+        reverse = 1
+        index -= 1
+        if row%2:print(' '*len(pattern)*(index+1)+pattern);continue
+    print(' '*len(pattern)*index+pattern*(row-2*index))
+    index += -1 if reverse else 1'''
+    
+# x-Pattern
+pattern = '* '
+space = '  '
+result = ''
+index = reverse = 0
+length = len(pattern)
+half = row//2
+for i in range(row):
+    if i==half:
+        reverse = 1
+        index -= 1
+        if row%2:print(' '*length*(index+1)+pattern);continue
+    print(' '*length*index+pattern+' '*length*(row-2*(index+1))+pattern)
+    index += -1 if reverse else 1
