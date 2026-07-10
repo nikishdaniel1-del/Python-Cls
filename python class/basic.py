@@ -30,3 +30,6 @@
 # print(1,2,sep='*')
 
 for i in range(int(input('Enter the number : ')),0,-1):print(*range(1,i+1),sep='*')
+
+
+print(list(zip(*[[1,2,3,4],[4,5,7,8]])))
