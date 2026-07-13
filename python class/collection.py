@@ -8,4 +8,7 @@ print(data)
 
 print(Counter(string1))
 
-data = OrderedDict()
+defaults = {"theme": "light", "font": 12}
+user = {"theme": "dark"}
+data = ChainMap(defaults,user)
+print(data)

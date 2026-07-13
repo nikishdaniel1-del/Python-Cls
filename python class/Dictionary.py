@@ -44,7 +44,7 @@ for i in range(len(pattern)):
     stream[currentWord] = currentMatch
 print(True)'''
 
-stream = ["eat","tea","tan","ate","nat","bat"]
+'''stream = ["eat","tea","tan","ate","nat","bat"]
 result = {}
 for i in stream:
     data = {}
@@ -57,4 +57,4 @@ for i in stream:
     if compressedString not in result:
         result[compressedString] = []
     result[compressedString].append(i)
-print(result)
+print(result)'''
