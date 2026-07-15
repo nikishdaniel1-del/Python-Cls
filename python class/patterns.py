@@ -108,7 +108,7 @@ for i in range(row):
     index += -1 if reverse else 1'''
     
 # x-Pattern
-pattern = '* '
+'''pattern = '* '
 space = '  '
 result = ''
 index = reverse = 0
@@ -120,4 +120,19 @@ for i in range(row):
         index -= 1
         if row%2:print(' '*length*(index+1)+pattern);continue
     print(' '*length*index+pattern+' '*length*(row-2*(index+1))+pattern)
-    index += -1 if reverse else 1
+    index += -1 if reverse else 1'''
+    
+# 1
+# 2 6
+# 3 7 10
+# 4 8 11 13
+# 5 9 12 14 15
+rows = row
+stream = ['' for i in range(rows)]
+ranges = (rows*(rows+1))//2
+index = count = 0
+for i in range(1,ranges+1):
+    if count==rows-index:index += 1;count = 0
+    stream[count+index] += str(i)+' '
+    count += 1
+for i in stream:print(i[:-1])
