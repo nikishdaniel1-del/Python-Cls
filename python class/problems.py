@@ -31,7 +31,7 @@ print(''.join(string))'''
 
 
 # keyboard row
-keyBoard = ['qwertyuiop','asdfghjkl','zxcvbnm']
+'''keyBoard = ['qwertyuiop','asdfghjkl','zxcvbnm']
 words = ["Hello","Alaska","Dad","Peace",'has']
 result = []
 for word in words:
@@ -43,9 +43,9 @@ for word in words:
                 if i in x:base=x;break
         elif i not in base:break
     else:result.append(word)
-print(result)
+print(result)'''
 
-keyDictionary = {'q': 0, 'w': 0, 'e': 0, 'r': 0, 't': 0, 'y': 0, 'u': 0, 'i': 0, 'o': 0, 'p': 0, 'a': 1, 's': 1, 'd': 1, 'f': 1, 'g': 1, 'h': 1, 'j': 1, 'k': 1, 'l': 1, 'z': 2, 'x': 2, 'c': 2, 'v': 2, 'b': 2, 'n': 2, 'm': 2}
+'''keyDictionary = {'q': 0, 'w': 0, 'e': 0, 'r': 0, 't': 0, 'y': 0, 'u': 0, 'i': 0, 'o': 0, 'p': 0, 'a': 1, 's': 1, 'd': 1, 'f': 1, 'g': 1, 'h': 1, 'j': 1, 'k': 1, 'l': 1, 'z': 2, 'x': 2, 'c': 2, 'v': 2, 'b': 2, 'n': 2, 'm': 2}
 words = ["Hello","Alaska","Dad","Peace",'has']
 result = []
 for word in words:
@@ -55,9 +55,39 @@ for word in words:
         if not base:base = keyDictionary[i]
         elif keyDictionary[i] != base:break
     else:result.append(word)
-print(result)
+print(result)'''
 
 
 # Form words in diagonal flow
-words = ['card','can','dad']
-# output : ['c','ca','rad','an','d']
+words = ['car','can','dad','python']
+largest = None
+for i in words:
+    currentLength = len(i)
+    if largest==None or currentLength>largest:largest=currentLength
+words = [x+' '*(largest-len(x)) for x in words]
+result = []
+index = reverse = 1
+for i in words:
+    if not result:result = list(i)
+    else:
+        for x in range(largest-1):
+            if reverse:result[index+x] = i[x]+result[index+x]
+            else:result[index+x] += i[x]
+            reverse = not reverse
+        if largest%2:reverse = not reverse
+        result.append(i[-1])
+        index += 1
+print(result)
+
+# Equal Score Substrings
+'''word = 'azby'
+right = left = 0
+for i in word:
+    right += ord(i)-96
+for i in word:
+    value = ord(i)-96
+    left += value
+    right -= value
+    if left==right:print(True);quit()
+print(False)'''
+

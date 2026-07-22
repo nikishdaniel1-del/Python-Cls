@@ -1,4 +1,7 @@
-import datetime , calendar
+from datetime import datetime,time,timedelta,date
 
-print(datetime.date(2003,12,3))
-print(calendar.JANUARY)
+now = datetime.now()
+dateB = datetime.strptime('03-12-2003','%d-%m-%Y')
+print(datetime.combine(now,time=time(8,59,50)))
+print(now-dateB)
+print(now + timedelta(60))
