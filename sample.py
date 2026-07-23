@@ -1,1 +1,0 @@
-print({chr(x+96):x for x in range(1,27)})
