@@ -14,8 +14,7 @@ if 'Employee_Table' not in workSheet.tables:
     workSheet.append(['ID','Name','Age','Languages Known'])
     table = Table(displayName='Employee_Table',ref='A1:D2')
     workSheet.add_table(table)
-else:
-    table = workSheet.tables['Employee_Table']
+else:table = workSheet.tables['Employee_Table']
 generator = Faker()
 for i in range(15):workSheet.append([generator.random_int(1,1000),generator.name(),generator.random_int(20,65),generator.language_name()])
 table.ref = f'A1:{get_column_letter(workSheet.max_column)}{workSheet.max_row}'
