@@ -10,14 +10,21 @@ if not os.path.exists(path):
     workBook.save(path)
 workBook = load_workbook(path)
 workSheet = workBook.active
-if 'Employee_Table' not in workSheet.tables:
+if 'Employee_Table' not in workSheet.tables.keys():
     workSheet.append(['ID','Name','Age','Languages Known'])
-    table = Table(displayName='Employee_Table',ref='A1:D2')
+    table = Table(displayName='Employee_Table',ref='A1:D1')
     workSheet.add_table(table)
 else:table = workSheet.tables['Employee_Table']
+workBook.create_sheet('New Next Sheet')
+workSheet.title = 'First sheet'
+# print(workBook.sheetnames)
+# workSheet = workBook['New Next Sheet']
+# workBook.active = workBook.index(workSheet)
+# print(workBook.active)
 generator = Faker()
 for i in range(15):workSheet.append([generator.random_int(1,1000),generator.name(),generator.random_int(20,65),generator.language_name()])
 table.ref = f'A1:{get_column_letter(workSheet.max_column)}{workSheet.max_row}'
 table.tableStyleInfo = TableStyleInfo(name='TableStyleMedium2',showFirstColumn=False,showLastColumn=False,showColumnStripes=True,showRowStripes=True)
+# workSheet.delete_rows(1,4)
 workBook.save(path)
 workBook.close()
