@@ -30,7 +30,7 @@ workSheet.title = 'First sheet'
 # print(workBook.active)
 generator = Faker()
 for i in range(15):workSheet.append([generator.random_int(1,1000),generator.name(),generator.random_int(20,70),generator.language_name(),'',''])
-# for i in workSheet.iter_rows():print(i[0].value)
+for i in workSheet.iter_rows():print(i[0].value)
 table.ref = f'A1:{get_column_letter(workSheet.max_column)}{workSheet.max_row}'
 # workSheet.delete_rows(1,4)
 workSheet['F2'].comment = Comment(text='This is a Comment',author='Nikish Daniel')

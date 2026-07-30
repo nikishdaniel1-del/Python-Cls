@@ -90,4 +90,3 @@ for i in word:
     right -= value
     if left==right:print(True);quit()
 print(False)'''
-
