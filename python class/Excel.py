@@ -5,6 +5,7 @@ from openpyxl.worksheet.table import Table,TableStyleInfo
 from openpyxl.comments import Comment
 from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.utils import get_column_letter
+from openpyxl.chart import BarChart3D
 path = r'Data\EmployeeManagement.xlsx'
 if not os.path.exists(path):
     workBook = Workbook()
