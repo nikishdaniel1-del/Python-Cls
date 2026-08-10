@@ -1,0 +1,53 @@
+from mysql.connector import connect,Error,pooling
+
+# connection = connect(host='127.0.0.1',user='root',password='Nikish@2003',database='javacls')
+# currentCursor = connection.cursor()
+# # currentCursor.execute(f'select *  from employee where empName = "{input()}"')
+# currentCursor.execute('insert into employee(empName,salary) values("%s",%2f)'%('Ram',20000.50,))
+# connection.commit()
+# currentCursor.execute('select *  from employee where empName = %s',('Ram',))
+# currentCursor.execute('update employee set salary = %2f where empName = %s'%(18000.00,'Ram'))
+# connection.commit()
+# currentCursor.execute('delete from employee where empid = %s',(1,))
+# connection.commit()
+# print(currentCursor.fetchall())
+# connection.close()
+
+poolConnections = pooling.MySQLConnectionPool(pool_name="mypool",pool_size=2,host='127.0.0.1',user='root',password='Nikish@2003',database='javacls')
+def display():
+    ids = int(input('Enter the Id : '))
+    connection1 = poolConnections.get_connection()
+    cursor1 = connection1.cursor()
+    cursor1.execute('select * from employee where empId = %s',(ids,))
+    print(cursor1.fetchall())
+    cursor1.close()
+    connection1.close()
+def insert():
+    name , salary = input('Enter the Name : ') , float(input('Enter the Salary : '))
+    connection2 = poolConnections.get_connection()
+    cursor2 = connection2.cursor()
+    cursor2.execute('insert into employee(empName,salary) values(%s,%s)',(name,salary,))
+    connection2.commit()
+    cursor2.close();connection2.close()
+def update():
+    ids , salary = int(input('Enter the Id : ')) , float(input('Enter the Salary : '))
+    connection3 = poolConnections.get_connection()
+    cursor3 = connection3.cursor()
+    cursor3.execute('update employee set salary = %s where empId = %s',(salary,ids,))
+    connection3.commit()
+    cursor3.close();connection3.close()
+def delete():
+    ids = int(input('Enter the Id : '))
+    connection4 = poolConnections.get_connection()
+    cursor4 = connection4.cursor()
+    cursor4.execute('delete from employee where empId = %s',(ids,))
+    connection4.commit()
+    cursor4.close();connection4.close()
+while 1:
+    operation = int(input('Enter the Operation (1-Display 2-insert 3-update 4-delete 5-exit) : '))
+    if operation==1:display()
+    elif operation==2:insert()
+    elif operation==3:update()
+    elif operation==4:delete()
+    elif operation==5:break
+    else:print('Invalid Operation.')
