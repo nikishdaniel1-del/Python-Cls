@@ -18,7 +18,7 @@ if files:
         emailContainer.add_attachment(data,maintype=maintype,subtype=subtype,filename=os.path.basename(i))
 
 with smtplib.SMTP_SSL('smtp.gmail.com',465) as smtp:
-    with open(r'C:\Users\WELCOME\Documents\New App Password.txt') as passwordFile:password = passwordFile.read()
+    with open(r'C:\Users\WELCOME\Documents\New App Password.txt','r') as passwordFile:password = passwordFile.read()
     smtp.login(sender,password)
     smtp.send_message(emailContainer)
 print('sent successfully')
