@@ -13,7 +13,7 @@ if files:
     for i in files:
         with open(i,'rb') as file:data = file.read();fileName = file.name
         fileType = mimetypes.guess_type(fileName)[0]
-        if fileType:maintype,subtype = fileType.split("/", 1)
+        if fileType:maintype,subtype = fileType.split('/',1)
         else:maintype,subtype = 'application','octet-stream'
         emailContainer.add_attachment(data,maintype=maintype,subtype=subtype,filename=os.path.basename(i))
 

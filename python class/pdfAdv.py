@@ -1,4 +1,5 @@
-from borb.pdf import Document,DropDownList,MultiColumnLayout,FormField,Table,TextBox,TextArea,Page,PDF,Paragraph,LinkAnnotation,LineArt,SingleColumnLayout,Image,MapOfTheWorld,CheckBox,Button,FlexibleColumnWidthTable
+import matplotlib.pyplot as plt
+from borb.pdf import Document,DropDownList,MultiColumnLayout,FormField,Table,TextBox,TextArea,Page,PDF,Paragraph,LinkAnnotation,LineArt,SingleColumnLayout,Image,MapOfTheWorld,CheckBox,Button,FlexibleColumnWidthTable,Chart
 
 pdfGenerator = Document()
 newPage = Page()
@@ -25,4 +26,8 @@ currentLayout.append_layout_element(table)
 # table.append_layout_element(Paragraph('Occupation'))
 # table.append_layout_element(Paragraph('Home Town'))
 # currentLayout.append_layout_element(table)
+plt.figure(figsize=(4,3))
+plt.bar(["A", "B", "C"], [10, 20, 15])
+chart = Chart(plt)
+currentLayout.append_layout_element(chart)
 PDF.write(pdfGenerator, "AdvaPdf.pdf")
