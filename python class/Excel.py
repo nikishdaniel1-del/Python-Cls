@@ -30,7 +30,7 @@ else:table = workSheet.tables['Sales_Table']
 # workSheet = workBook['New Next Sheet']
 # workBook.active = workBook.index(workSheet)
 generator = Faker()
-for i in range(15):workSheet.append([generator.iban(),generator.company_email(),generator.random_int(1,20),generator.pricetag()])
+for i in range(75):workSheet.append([generator.iban(),generator.company_email(),generator.random_int(1,20),generator.pricetag()])
 # for i in workSheet.iter_rows():print(i[0].value)
 table.ref = f'A1:{get_column_letter(workSheet.max_column)}{workSheet.max_row}'
 # workSheet.delete_rows(1,4)
