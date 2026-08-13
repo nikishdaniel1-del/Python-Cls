@@ -59,7 +59,7 @@ print(result)'''
 
 
 # Form words in diagonal flow
-words = ['car','can','dad','python']
+'''words = ['car','can','dad','python']
 largest = None
 for i in words:
     currentLength = len(i)
@@ -77,7 +77,7 @@ for i in words:
         if largest%2:reverse = not reverse
         result.append(i[-1])
         index += 1
-print(result)
+print(result)'''
 
 # Equal Score Substrings
 '''word = 'azby'
@@ -90,3 +90,19 @@ for i in word:
     right -= value
     if left==right:print(True);quit()
 print(False)'''
+
+# Zigzag Conversion.
+'''string = "PAYPALISHIRING"
+rows = 4
+stream = ['']*rows
+index = rev = 0
+for x in string:
+    stream[index] += x
+    if index == 0:rev = 0
+    elif index == rows-1:rev = 1
+    index += -1 if rev else 1
+print(''.join(stream))'''
+
+
+'2*((4-3)*4)'
+'2*4-3'
