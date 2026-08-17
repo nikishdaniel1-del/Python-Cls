@@ -127,12 +127,11 @@ for i in range(row):
 # 3 7 10
 # 4 8 11 13
 # 5 9 12 14 15
-rows = row
-stream = ['' for i in range(rows)]
-ranges = (rows*(rows+1))//2
+'''rows = row
+stream = ['']*rows
 index = count = 0
-for i in range(1,ranges+1):
-    if count==rows-index:index += 1;count = 0
+for i in range(1,(rows*(rows+1))//2+1):
+    if count==rows-index:index += 1;print(stream[index-1]);count = 0
     stream[count+index] += str(i)+' '
     count += 1
-for i in stream:print(i[:-1])
+print(stream[index])'''
