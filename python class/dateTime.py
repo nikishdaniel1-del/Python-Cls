@@ -12,4 +12,7 @@ print(datetime.strftime(now + timedelta(days=1),'%d-%m-%Y'))
 
 
 string = '03-12-2003'
-print(datetime.strptime(string,'%Y-%'))
+print(datetime.strptime(string,'%d-%m-%Y'))
+now = now.replace(2003,12,3)
+print(now)
+print(now+timedelta(7))

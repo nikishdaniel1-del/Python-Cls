@@ -104,5 +104,71 @@ for x in string:
 print(''.join(stream))'''
 
 
-'2*((4-3)*4)'
-'2*4-3'
+# i/p: 2*((4-3)*4)
+# o/p : 8
+# i/p": 2*4-3
+# o/p : 5
+# i/p : 2+4*3
+# o/p : 18
+
+s = '2*(7-2)*2-9'
+stack = []
+operation = []
+for i in s:
+    if i==')':
+        index = 0
+        for x in stack[::-1]:
+            if x == '(':break
+            index += 1
+        rangeOfElements = 0-(index+1)
+        stack.pop(rangeOfElements)
+        first = index1 = 0
+        currentStack = stack[rangeOfElements+1:]
+        currentOperations = operation[0-(index-1):]
+        for s in currentStack:
+            integer = int(currentStack[index1])
+            if index1==0:first += integer
+            else:
+                currentOperation = currentOperations[index1-1]
+                if currentOperation=='+':first += integer
+                elif currentOperation=='-':first -= integer
+                elif currentOperation=='*':first *= integer
+                else:first//=integer
+            index1 += 1
+        stack = stack[:rangeOfElements+1]
+        operation = operation[:0-(index-1)]
+        stack.append(str(first))
+    elif i in '+-*/':
+        operation.append(i)
+    else:
+        stack.append(i)
+index = 0
+first = int(stack.pop(0))
+for i in stack:
+    integer = int(i)
+    currentOperation = operation[index]
+    if currentOperation=='+':first += integer
+    elif currentOperation=='-':first -= integer
+    elif currentOperation=='*':first *= integer
+    else:first//=integer
+    index += 1
+print(first)
+
+# leetcode 1386
+'''from collections import defaultdict
+n = 3;reservedSeats = [[1,2],[1,3],[1,8],[2,6],[3,1],[3,10]]
+stream = defaultdict(list)
+for i in reservedSeats:
+    row , seat = i
+    if seat!=1 and seat!=10:stream[row].append(seat)
+result = index = 0
+for x in stream:
+    seats = ['-']*8
+    for i in stream[x]:seats[i-2]='*'
+    valid = ['-','-','-','-']
+    print(seats[:4],seats[2:6],seats[4:])
+    if seats[:4]==valid or seats[4:]==valid or seats[2:6]==valid:result += 1
+    index += 1
+result += 2*(n-index)
+print(result)'''
+
