@@ -1,6 +1,7 @@
 from nicegui import ui,app
 from fpdf import FPDF
-from bs4 import BeautifulSoup
+import time
+from mysql.connector import pooling
 
 @ui.page('/Study')
 def study():
@@ -30,13 +31,13 @@ def main():
         pdf.set_font("Arial", size=12)
         pdf.multi_cell(0,10,text.value)
         pdf.output(pdfPath)
-        pdfPreview.set_content(''' <iframe src="/pdfs/output.pdf" style=" width: 100%; height: 100%; border: none; "> </iframe> ''')
+        pdfViewer.set_content(f''' <iframe src="/pdfs/output.pdf?v={time.time_ns()}" style=" width: 100%; height: 100%; border: none; "> </iframe> ''')
     def add(operation):
         with widgetsSaved:
-            ui.label(operation)
+            ui.label(operation).classes('w-full h-full')
     pdfWidgets = ['Text','Table','Link','Image','Line Break']
     with ui.row().classes('w-full gap-1'):
-        with ui.card().classes('w-full').style('background-color: rgba(255,255,255,0.7); backdrop-filter: blur(0.5px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
+        with ui.card().classes('w-full').style('background-color: rgba(255,255,255,0.9); backdrop-filter: blur(0.5px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
             with ui.grid(columns='10% 5% 5% 30% 10% 15% 15%').classes('w-full gap-2'):
                 ui.button('Back',color='#00fff2',on_click=lambda:ui.navigate.to('/'),icon='arrow_back')
                 ui.space().classes('w-full')
@@ -44,14 +45,13 @@ def main():
                 ui.select(label='Select Widget',options=pdfWidgets,clearable=True,on_change=lambda x:add(x.value)).props('dense')
                 ui.space().classes('w-full')
                 ui.button('Generate PDF',on_click=generatePDF).classes('w-full')
-                ui.button('Download PDF').classes('w-full')
         with ui.grid(columns='30% 70%').classes('gap-1 w-full'):
-            widgetsSaved = ui.card().classes('w-full h-screen overflow-auto').style('background-color: rgba(255,255,255,0.6); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);')
+            widgetsSaved = ui.card().classes('w-full h-screen overflow-auto').style('background-color: rgba(255,255,255,0.9); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);')
             with widgetsSaved:
                 text = ui.textarea(placeholder='Enter your Text here')
                 ui.button('Fetch',on_click=lambda:print(text.value))
-            with ui.card().classes('w-full h-screen overflow-auto').style('background-color: rgba(1, 1, 1, 0.6); backdrop-filter: blur(0.5px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
-                pdfPreview = ui.html('').classes('w-full h-full')
+            with ui.card().classes('w-full h-screen overflow-auto').style('background-color: rgba(1,1,1,0.6); backdrop-filter: blur(0.5px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
+                pdfViewer = ui.html('',sanitize=False).classes('w-full h-full')               
 
 @ui.page('/')
 def home():
@@ -63,11 +63,15 @@ def home():
                .white-input .q-field__append .q-icon {color: white !important;}
                .white-input .q-field__append .q-icon:hover {color: grey !important;}''',shared=True)
     ui.button('Study',on_click=lambda:ui.navigate.to('/Study'))
-    with ui.card().classes('absolute-center w-[50%] items-center').style('background-color: rgba(1, 1, 1, 0.6); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
+    with ui.card().classes('absolute-center w-[50%] items-center').style('background-color: rgba(1, 1, 1, 0.7); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
         ui.input(label='UserName',placeholder='Enter your UserName',value='Daniel').classes('w-full white-input').props('clearable')
         ui.input(label='Password',placeholder='Enter your Password',password=True,password_toggle_button=True).classes('w-full white-input').props('clearable')
-        ui.button('Next',on_click=lambda:ui.navigate.to('/Main'),color="white",icon='home')
+        with ui.row().classes('w-full gap-2 justify-center'):
+            ui.button('Register',icon='person_add').classes('w-1/4')
+            ui.button('Login',icon='login',on_click=lambda:ui.navigate.to('/Main'),color="white").classes('w-1/4')
+        ui.link('Forgot Password?')
 
+poolConnections = pooling.MySQLConnectionPool(pool_name="mypool",pool_size=2,host='localhost',user='root',password='Nikish@2003',database='pdfUsers')
 app.add_static_files('/static','Data')
 app.add_static_files('/pdfs','pdfs')
-ui.run(port=8085)
+ui.run(port=8085,)
