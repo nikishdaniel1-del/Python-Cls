@@ -1,8 +1,12 @@
 from nicegui import ui,app
 from fpdf import FPDF
-import time
-from mysql.connector import pooling
+import time,aiomysql
 
+poolConnection = None
+async def makeConnection():
+    global poolConnection
+    poolConnection = await aiomysql.create_pool(host='localhost',user='root',password='Nikish@2003',db='pdfUsers',autocommit=True)
+    
 @ui.page('/Study')
 def study():
     with ui.card().classes('overflow-auto h-screen'):
@@ -53,25 +57,48 @@ def main():
             with ui.card().classes('w-full h-screen overflow-auto').style('background-color: rgba(1,1,1,0.6); backdrop-filter: blur(0.5px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
                 pdfViewer = ui.html('',sanitize=False).classes('w-full h-full')
 
+@ui.page('/{email}/MyPDFs')
+def usersPdf(email):
+    ui.add_css('''body {background-image:url("/static/Original.webp");background-size: cover;background-position:top center;}''')
+    ui.label(email)
+
 @ui.page('/Register')
 def register():
-    def pushData():
-        currentUserName = userName.value
+    ui.button('Back',on_click=lambda:ui.navigate.to('/'))
+    async def pushData():
+        currentEmail = email.value
         currentPassword = password.value
-        if currentUserName=='' or currentPassword=='':ui.notify('Please fill in all fields',type='negative');return
-        connection = poolConnections.get_connection()
-        cursor = connection.cursor()
-        cursor.execute(f"INSERT INTO users (username,password) VALUES ('{currentUserName}','{currentPassword}')")
-        connection.commit()
-        cursor.close()
-        connection.close()
+        if currentEmail=='' or currentPassword=='':ui.notify('Please fill in all fields',type='warning');return
+        try:
+            async with poolConnection.acquire() as connection:
+                async with connection.cursor() as cursor:
+                    await cursor.execute(f"select passwords from users where email = %s limit 1",(currentEmail,))
+                    existanceCheck = await cursor.fetchone()
+                    if existanceCheck:ui.notify('Email already exists.',type='info',color='red');return
+                    await cursor.execute(f"INSERT INTO users (email,passwords) VALUES ('{currentEmail}','{currentPassword}')")
+                    ui.notify('Registered Successfully',type='positive')
+        except Exception as error:ui.notify(str(error),type='negative')
     with ui.card().classes('absolute-center w-[50%] items-center').style('background-color: rgba(1, 1, 1, 0.7); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
-        userName = ui.input(label='UserName',placeholder='Enter your UserName').classes('w-full white-input').props('clearable')
+        email = ui.input(label='Email',placeholder='Enter your Email').classes('w-full white-input').props('clearable')
         password = ui.input(label='Password',placeholder='Enter your Password',password=True,password_toggle_button=True).classes('w-full white-input').props('clearable')
         ui.button('Register',icon='person_add',on_click=pushData).classes('w-1/4')
 
 @ui.page('/')
 def home():
+    async def checkLogin():
+        currentEmail = email.value
+        currentPassword = password.value
+        if currentEmail=='' or currentPassword=='':ui.notify('Please fill in all fields',type='warning');return
+        try:
+            async with poolConnection.acquire() as connection:
+                async with connection.cursor() as cursor:
+                    await cursor.execute(f"select passwords from users where email = %s limit 1",(currentEmail,))
+                    passwordCheck = await cursor.fetchone()
+                    if not passwordCheck:ui.notify("Email doesn't exists.",type='info',color='red');return
+                    elif currentPassword!=passwordCheck[0]:ui.notify('Invalid Password.');return
+                    ui.notify('Login Successfully',type='positive')
+                    ui.timer(10,lambda:ui.navigate.to(f'/{currentEmail}/MyPDFs'))
+        except Exception as error:ui.notify(str(error),type='negative')
     ui.add_css('''body {background-image: url("/static/mountain.webp");background-size: cover;background-position:top center;}
                .white-input .q-field__label {color: white !important;}
                .white-input .q-field__native {color: white !important;}
@@ -81,14 +108,13 @@ def home():
                .white-input .q-field__append .q-icon:hover {color: grey !important;}''',shared=True)
     ui.button('Study',on_click=lambda:ui.navigate.to('/Study'))
     with ui.card().classes('absolute-center w-[50%] items-center').style('background-color: rgba(1, 1, 1, 0.7); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
-        ui.input(label='UserName',placeholder='Enter your UserName',value='Daniel').classes('w-full white-input').props('clearable')
-        ui.input(label='Password',placeholder='Enter your Password',password=True,password_toggle_button=True).classes('w-full white-input').props('clearable')
+        email = ui.input(label='Email',placeholder='Enter your Email').classes('w-full white-input').props('clearable')
+        password = ui.input(label='Password',placeholder='Enter your Password',password=True,password_toggle_button=True).classes('w-full white-input').props('clearable')
         with ui.row().classes('w-full gap-2 justify-center'):
             ui.button('Register',icon='person_add',on_click=lambda:ui.navigate.to('/Register')).classes('w-1/4')
-            ui.button('Login',icon='login',on_click=lambda:ui.navigate.to('/Main'),color="white").classes('w-1/4')
+            ui.button('Login',icon='login',on_click=checkLogin,color="white").classes('w-1/4')
         ui.link('Forgot Password?')
-
-poolConnections = pooling.MySQLConnectionPool(pool_name="mypool",pool_size=2,host='localhost',user='root',password='Nikish@2003',database='pdfUsers')
+app.on_startup(makeConnection)
 app.add_static_files('/static','Data')
 app.add_static_files('/pdfs','pdfs')
 ui.run(port=8085,)
