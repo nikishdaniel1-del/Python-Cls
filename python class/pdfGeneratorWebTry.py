@@ -12,13 +12,16 @@ def main():
         pdf.set_font("Arial", size=12)
         for i in widgetsSaved:
             print(i)
+            # pdf.set_encryption(user_pwd='', owner_pwd=None, permissions=['print'])
         pdf.output(pdfPath)
         pdfViewer.set_content(f''' <iframe src="/pdfs/output.pdf?v={time.time_ns()}" style=" width: 100%; height: 100%; border: none; "> </iframe> ''')
     def add(operation):
         with widgetsSaved:
             ui.label(operation).classes('w-full')
     def uploadImage(e):
-        try:image_data = e.file.read()
+        try:
+            image_data = e.file.read()
+            print(image_data)
         except Exception as error:ui.notify(f"Error reading image: {error}", color='negative'); return
     pdfWidgets = {'Text':'textarea','Table':'table','Link':'link','Image':'image','Line Break':'line_break'}
     with ui.row().classes('w-full gap-1'):
