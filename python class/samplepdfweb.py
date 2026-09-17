@@ -59,7 +59,6 @@ def home():
                         saveFab = ui.fab_action(icon='save',on_click=lambda:[saveFab.set_visibility(False),pdfName.disable(),pdfDescription.disable()],auto_close=False)
                         saveFab.set_visibility(False)
                         with saveFab:ui.tooltip('Save')
-                        
                 pdfDescription = ui.input('PDF Description',value=pdfsHolder.index)
                 pdfDescription.disable()
                 pdfsHolder.index += 1

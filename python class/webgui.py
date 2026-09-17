@@ -114,6 +114,7 @@ def home():
             ui.button('Register',icon='person_add',on_click=lambda:ui.navigate.to('/Register')).classes('w-1/4')
             ui.button('Login',icon='login',on_click=checkLogin,color="white").classes('w-1/4')
         ui.link('Forgot Password?')
+        
 app.on_startup(makeConnection)
 app.add_static_files('/static','Data')
 app.add_static_files('/pdfs','pdfs')
