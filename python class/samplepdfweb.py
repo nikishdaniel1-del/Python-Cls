@@ -41,15 +41,33 @@ def main():
 
 @ui.page('/')
 def home():
+    ui.add_css('''body {background-image:url("/static/foggy-forest-landscape-dark-silhouette-mysterious-atmosphere-generated-by-ai.avif");background-size: cover;background-position: center;background-attachment: fixed;}
+               .my-fab .q-btn {width: 28px !important;height: 28px !important;min-width: 28px !important;min-height: 28px !important;display: flex !important;align-items: center !important;justify-content: center !important;}
+               .my-fab .q-icon {font-size: 16px !important;}
+               .hover-card {transition: all 0.3s ease;}
+               .hover-card:hover {transform: scale(1.03);box-shadow: 0 10px 25px rgba(0,0,0,0.2);}''')
     def addPdfs():
         with pdfsHolder:
-            ui.card().classes('w-full h-30').style('border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);')
-    with ui.card().classes('w-full'):
-        ui.button('New PDF',on_click=addPdfs)
-    with ui.card().classes('w-full h-screen'):
-        pdfsHolder = ui.grid(columns=3).classes('w-full overflow-auto')
-        with pdfsHolder:
-            ui.card().classes('w-full h-30').style('border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);')
+            currentPDF = ui.card().classes('w-full h-full hover-card object-cover aspect-rectangle').style('border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);')
+            with currentPDF:
+                with ui.grid(columns=2):
+                    pdfName = ui.input('PDF Name',value=pdfsHolder.index)
+                    pdfName.disable()
+                    with ui.fab('more_vert',direction='left').classes('ml-auto my-fab'):
+                        with ui.fab_action(icon='delete',on_click=lambda:currentPDF.delete(),auto_close=False):ui.tooltip('Delete')
+                        with ui.fab_action(icon='edit',on_click=lambda:[saveFab.set_visibility(True),pdfName.enable(),pdfDescription.enable()],auto_close=False):ui.tooltip('Edit')
+                        saveFab = ui.fab_action(icon='save',on_click=lambda:[saveFab.set_visibility(False),pdfName.disable(),pdfDescription.disable()],auto_close=False)
+                        saveFab.set_visibility(False)
+                        with saveFab:ui.tooltip('Save')
+                        
+                pdfDescription = ui.input('PDF Description',value=pdfsHolder.index)
+                pdfDescription.disable()
+                pdfsHolder.index += 1
+    ui.button('New PDF',on_click=addPdfs)
+    with ui.card().classes('p-4 w-full h-screen overflow-auto').style('background-color: rgba(1, 1, 1, 0.3); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
+        pdfsHolder = ui.grid(columns=3).classes('w-full gap-2 items-start')
+        pdfsHolder.index = 0
+        addPdfs()
 
 app.add_static_files('/static','Data')
 app.add_static_files('/pdfs','pdfs')

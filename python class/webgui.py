@@ -27,7 +27,7 @@ def study():
 
 @ui.page('/Main')
 def main():
-    ui.add_css('''body {background-image:url("/static/Original.webp");background-size: cover;background-position:top center;}''')
+    ui.add_css('''body {background-image:url("/static/Original.webp");background-size: cover;background-position: center;background-attachment: fixed;}''')
     def generatePDF():
         pdfPath = "pdfs/output.pdf"
         pdf = FPDF()
@@ -59,7 +59,7 @@ def main():
 
 @ui.page('/{email}/MyPDFs')
 def usersPdf(email):
-    ui.add_css('''body {background-image:url("/static/Original.webp");background-size: cover;background-position:top center;}''')
+    ui.add_css('''body {background-image:url("/static/Original.webp");background-size: cover;background-position: center;background-attachment: fixed;}''')
     ui.label(email)
 
 @ui.page('/Register')
@@ -99,7 +99,7 @@ def home():
                     ui.notify('Login Successfully',type='positive')
                     ui.timer(2,lambda:ui.navigate.to(f'/{currentEmail}/MyPDFs'),immediate=False)
         except Exception as error:ui.notify(str(error),type='negative')
-    ui.add_css('''body {background-image: url("/static/mountain.webp");background-size: cover;background-position:top center;}
+    ui.add_css('''body {background-image: url("/static/mountain.webp");background-size: cover;background-position: center;background-attachment: fixed;}
                .white-input .q-field__label {color: white !important;}
                .white-input .q-field__native {color: white !important;}
                .white-input .q-field__control:before {border-bottom: 1px solid white !important;}
