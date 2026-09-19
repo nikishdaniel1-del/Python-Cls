@@ -28,7 +28,10 @@ def main():
         pdf = FPDF()
         pdf.add_page()
         pdf.set_font("Arial", size=12)
-        pdf.multi_cell(0,10,text.value)
+        for i in widgetsSaved:
+            if i.__class__.__name__ == 'Textarea':pdf.multi_cell(0,10,i.value,)
+            else:pdf.cell(0,10,text=i.value,link='https:\\google.com')
+            pdf.ln(0)
         pdf.output(pdfPath)
         pdfViewer.set_content(f''' <iframe src="/pdfs/output.pdf?v={time.time_ns()}" style=" width: 100%; height: 100%; border: none; "> </iframe> ''')
     def add(operation):
@@ -44,11 +47,12 @@ def main():
                 ui.select(label='Select Widget',options=pdfWidgets,clearable=True,on_change=lambda x:add(x.value)).props('dense')
                 ui.space().classes('w-full')
                 ui.button('Generate PDF',on_click=generatePDF).classes('w-full')
+                ui.button()
         with ui.grid(columns='30% 70%').classes('gap-1 w-full'):
             widgetsSaved = ui.card().classes('w-full h-screen overflow-auto').style('background-color: rgba(255,255,255,0.9); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);')
             with widgetsSaved:
-                text = ui.textarea(placeholder='Enter your Text here')
-                ui.button('Fetch',on_click=lambda:print(text.value))
+                ui.textarea(placeholder='Enter your Text here')
+                ui.input()
             with ui.card().classes('w-full h-screen overflow-auto').style('background-color: rgba(1,1,1,0.6); backdrop-filter: blur(0.5px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
                 pdfViewer = ui.html('',sanitize=False).classes('w-full h-full')               
 
