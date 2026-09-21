@@ -9,6 +9,7 @@ async def makeConnection():
     
 @ui.page('/Study')
 def study():
+    ui.input(validation={'Input too long': lambda value: len(value) < 8})
     with ui.card().classes('overflow-auto h-screen'):
         ui.label('Main Page').classes('font-bold')
         backButton = ui.button('Back',color='#00fff2',on_click=lambda:ui.navigate.to('/'),icon='arrow_back')
@@ -24,6 +25,11 @@ def study():
         ui.rating(icon='star',size='lg')
         ui.button('Update',on_click=updater)
         ui.code('''name = 'Nikish Daniel'\nprint('Hello Python')''')
+    with ui.row().classes('w-full justify-center'):
+        with ui.card().classes('w-1/2'):
+            with ui.row().classes('w-full items-center gap-2'):
+                ui.icon('home',size='xs').classes('text-xl')
+                ui.input().classes('wflex-1')
 
 @ui.page('/Main')
 def main():
