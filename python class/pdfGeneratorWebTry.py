@@ -4,46 +4,50 @@ import time
 
 @ui.page('/')
 def main():
+    pdf = FPDF()
     ui.add_css('''body {background-image:url("/static/Original.webp");background-size: cover;background-position:top center;}''')
+    def pdfProperties():
+        with ui.dialog() as propertiesDialog,ui.card().classes('w-1/2 h-3/4'):
+            with ui.row().classes('w-full items-center justify-between gap-2 flex-wrap'):
+                ui.label('PDF Properties').classes('font-bold').style('font-family:"Times New Roman";font-size:26px;font-weight:bold;')
+                ui.button('',icon='save',color='green')
+            for i in ['Author','Creator',"Creator's Password","User's Password"]:
+                ui.input(label=i,placeholder=f"Enter PDF's {i}").classes('w-full')
+        propertiesDialog.open()
+
     def generatePDF():
         pdfPath = "pdfs/output.pdf"
-        pdf = FPDF()
         pdf.add_page()
         pdf.set_font("Arial", size=12)
         for i in widgetsSaved:
-            print(i)
-            # pdf.set_encryption(user_pwd='', owner_pwd=None, permissions=['print'])
+            if i.__class__.__name__ == 'Textarea':pdf.multi_cell(0, 10, i.value)
         pdf.output(pdfPath)
-        pdfViewer.set_content(f''' <iframe src="/pdfs/output.pdf?v={time.time_ns()}" style=" width: 100%; height: 100%; border: none; "> </iframe> ''')
+        pdfViewer.set_content(f'''<iframe src="/pdfs/output.pdf?v={time.time_ns()}" style=" width: 100%; height: 100%; border: none; "> </iframe>''')
+
     def add(operation):
         with widgetsSaved:
-            ui.label(operation).classes('w-full')
+            getattr(ui,pdfWidgets[operation])().classes('w-full')
+
     def uploadImage(e):
         try:
             image_data = e.file.read()
             print(image_data)
         except Exception as error:ui.notify(f"Error reading image: {error}", color='negative'); return
+
     pdfWidgets = {'Text':'textarea','Table':'table','Link':'link','Image':'image','Line Break':'line_break'}
     with ui.row().classes('w-full gap-1'):
         with ui.card().classes('w-full').style('background-color: rgba(255,255,255,0.9); backdrop-filter: blur(0.5px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
-            with ui.grid(columns='10% 10% 8% 30% 10% 15%').classes('w-full gap-2'):
+            with ui.row().classes('w-full items-center justify-between gap-2 flex-wrap'):
                 ui.button('Back',color='#00fff2',on_click=lambda:ui.navigate.to('/'),icon='arrow_back')
-                ui.space().classes('w-full')
-                ui.label('Widgets').classes('font-bold').props('dense').style('font-family:"Times New Roman";font-size:26px;font-weight:bold;')
-                with ui.dropdown_button('Select Widget',auto_close=True):
-                    ui.item('Text',on_click=lambda:add('Text')).classes('w-full')
-                    ui.item('Table',on_click=lambda:add('Table')).classes('w-full')
-                    ui.item('Link',on_click=lambda:add('Link')).classes('w-full')
-                    ui.item('Image',on_click=lambda:add('Image')).classes('w-full')
-                    ui.item('Line Break',on_click=lambda:add('Line Break')).classes('w-full')
-                ui.space().classes('w-full')
-                ui.button('Generate PDF',on_click=generatePDF).classes('w-full')
+                with ui.row().classes('w-1/2 flex-wrap'):
+                    ui.label('Widgets').classes('font-bold').props('dense').style('font-family:"Times New Roman";font-size:26px;font-weight:bold;')
+                    with ui.dropdown_button('Select Widget',auto_close=True).classes('w-3/4'):
+                        for i in pdfWidgets:
+                            ui.item(i,on_click=lambda widget=i: add(widget)).classes('w-full')
+                ui.button('Generate PDF',on_click=generatePDF)
+                ui.button('Properties',on_click=pdfProperties)
         with ui.grid(columns='30% 70%').classes('gap-1 w-full'):
             widgetsSaved = ui.card().classes('w-full h-screen overflow-auto').style('background-color: rgba(255,255,255,0.9); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);')
-            with widgetsSaved:
-                text = ui.textarea(placeholder='Enter your Text here')
-                imageUpload = ui.upload(auto_upload=True,on_upload=uploadImage).props('accept=image/*').style('display:none')
-                ui.button('Upload Image',on_click=lambda:imageUpload.run_method('pickFiles'))
             with ui.card().classes('w-full h-screen overflow-auto').style('background-color: rgba(1,1,1,0.6); backdrop-filter: blur(0.5px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
                 pdfViewer = ui.html('',sanitize=False).classes('w-full h-full')
 
