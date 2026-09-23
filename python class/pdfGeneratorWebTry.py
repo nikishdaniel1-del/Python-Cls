@@ -4,7 +4,6 @@ import time
 
 @ui.page('/')
 def main():
-    pdf = FPDF()
     ui.add_css('''body {background-image:url("/static/Original.webp");background-size: cover;background-position:top center;}''')
     def pdfProperties():
         with ui.dialog() as propertiesDialog,ui.card().classes('w-1/2 h-3/4'):
@@ -17,16 +16,23 @@ def main():
 
     def generatePDF():
         pdfPath = "pdfs/output.pdf"
+        pdf = FPDF()
         pdf.add_page()
         pdf.set_font("Arial", size=12)
         for i in widgetsSaved:
-            if i.__class__.__name__ == 'Textarea':pdf.multi_cell(0, 10, i.value)
+            widgetType = i.type
+            if widgetType=='Text':pdf.multi_cell(0, 8, str(i.value))
+            elif widgetType=='Link':pdf.write(8, str(i.value), i.value)
+            elif widgetType=='Input':pdf.ln(int(i.value))
         pdf.output(pdfPath)
         pdfViewer.set_content(f'''<iframe src="/pdfs/output.pdf?v={time.time_ns()}" style=" width: 100%; height: 100%; border: none; "> </iframe>''')
 
     def add(operation):
         with widgetsSaved:
-            getattr(ui,pdfWidgets[operation])().classes('w-full')
+            if operation=='Text':widget = ui.textarea(label=operation,placeholder='Enter text here').classes('w-full')
+            elif operation=='Link':widget = ui.input(label=operation,placeholder='Enter link here').classes('w-full')
+            else:widget = ui.input(label=operation,placeholder=f'Enter {operation} here',value='0').classes('w-full')
+            widget.type = operation
 
     def uploadImage(e):
         try:
@@ -34,7 +40,7 @@ def main():
             print(image_data)
         except Exception as error:ui.notify(f"Error reading image: {error}", color='negative'); return
 
-    pdfWidgets = {'Text':'textarea','Table':'table','Link':'link','Image':'image','Line Break':'line_break'}
+    pdfWidgets = ['Text','Table','Link','Image','Line Break']
     with ui.row().classes('w-full gap-1'):
         with ui.card().classes('w-full').style('background-color: rgba(255,255,255,0.9); backdrop-filter: blur(0.5px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
             with ui.row().classes('w-full items-center justify-between gap-2 flex-wrap'):
