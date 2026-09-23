@@ -7,8 +7,9 @@ async def makeConnection():
     global poolConnection
     poolConnection = await aiomysql.create_pool(host='localhost',user='root',password='Nikish@2003',db='pdfUsers',autocommit=True)
 
-@ui.page('/home')
-def main():
+@ui.page('/{currentPdf}/PDFEditor')
+def main(currentPdf):
+    print(currentPdf)
     ui.add_css('''body {background-image:url("/static/Original.webp");background-size: cover;background-position: center;;background-attachment: fixed;}''')
     def generatePDF():
         pdfPath = "pdfs/output.pdf"
@@ -21,7 +22,7 @@ def main():
     def add(operation):
         with widgetsSaved:
             ui.label(operation).classes('w-full')
-    pdfWidgets = {'Text':'textarea','Table':'table','Link':'link','Image':'image','Line Break':'line_break'}
+    pdfWidgets = ['Text','Table','Link','Image','Line Break']
     with ui.row().classes('w-full gap-1'):
         with ui.card().classes('w-full').style('background-color: rgba(255,255,255,0.9); backdrop-filter: blur(0.5px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
             with ui.grid(columns='10% 10% 8% 30% 10% 15%').classes('w-full gap-2'):
@@ -70,7 +71,7 @@ async def home(email):
             currentPDF = ui.card().classes('w-full h-full hover-card object-cover aspect-rectangle').style('border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);')
             with currentPDF:
                 with ui.grid(columns='62% 9% 9% 9%').classes('w-full'):
-                    pdfName = ui.input('PDF Name',placeholder="Enter PDF's Name",value=name).classes('w-full').props('rounded outlined dense')
+                    pdfName = ui.input('PDF Name',placeholder="Enter PDF's Name",value=name,validation={'PDF Already Exists':lambda x:x not in ['sample','sample2']}).classes('w-full').props('rounded outlined dense')
                     with ui.button('',icon='edit',on_click=lambda:[pdfName.enable(),pdfDescription.enable()]).classes('h-1/2'):ui.tooltip('Edit')
                     with ui.button('',icon='delete',color='red',on_click=lambda:currentPDF.delete()).classes('h-1/2'):ui.tooltip('Delete')
                     saveButton = ui.button(text='',icon='save',color='green',on_click=savePdfs).classes('h-1/2')
@@ -78,7 +79,7 @@ async def home(email):
                     with saveButton:ui.tooltip('Save')
                 with ui.grid(columns='70% 40%'):
                     pdfDescription = ui.input('PDF Description',placeholder="Enter PDF's Description",value=description).classes('w-full').props('rounded outlined dense')
-                    ui.button('Editor',icon='picture_as_pdf').classes('w-full')
+                    ui.button('Editor',icon='picture_as_pdf',on_click=lambda:ui.navigate.to(f'/{pdfName.value}/PDFEditor')).classes('w-full')
     ui.button('New PDF',icon='add',on_click=addPdfs)
     with ui.card().classes('p-4 w-full h-screen overflow-auto').style('background-color: rgba(1, 1, 1, 0.3); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
         pdfsHolder = ui.grid(columns=3).classes('w-full gap-2 items-start')
