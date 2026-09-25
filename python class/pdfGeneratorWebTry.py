@@ -30,7 +30,10 @@ def main():
     def add(operation):
         with widgetsSaved:
             if operation=='Text':widget = ui.textarea(label=operation,placeholder='Enter text here').classes('w-full')
-            elif operation=='Link':widget = ui.input(label=operation,placeholder='Enter link here').classes('w-full')
+            elif operation=='Link':
+                with ui.card() as widget:
+                    ui.input(label='Link Text',placeholder='Enter the Link Text').classes('w-full')
+                    ui.input(label='Link URL',placeholder='Enter link here').classes('w-full')
             else:widget = ui.input(label=operation,placeholder=f'Enter {operation} here',value='0').classes('w-full')
             widget.type = operation
 
@@ -59,4 +62,4 @@ def main():
 
 app.add_static_files('/static','Data')
 app.add_static_files('/pdfs','pdfs')
-ui.run(port=8085,)
+ui.run(port=8085,title='PDF Generator')
