@@ -9,7 +9,6 @@ async def makeConnection():
 
 @ui.page('/{currentPdf}/PDFEditor')
 def main(currentPdf):
-    print(currentPdf)
     ui.add_css('''body {background-image:url("/static/Original.webp");background-size: cover;background-position: center;;background-attachment: fixed;}''')
     def generatePDF():
         pdfPath = "pdfs/output.pdf"
@@ -51,6 +50,14 @@ async def home(email):
                .hover-card {transition: all 0.3s ease;}
                .hover-card:hover {transform: scale(1.03);box-shadow: 0 10px 25px rgba(0,0,0,0.2);}''')
     def addPdfs(id=0,name='',description=''):
+        async def deletePdf(widget):
+            try:
+                async with poolConnection.acquire() as connection:
+                    async with connection.cursor() as cursor:
+                        await cursor.execute('delete from userspdf where email=%s and pdfName=%s',(email,pdfName.value,))
+                        widget.delete()
+                        ui.notify('Deleted Successfully',type='positive')
+            except Exception as error:ui.notify(str(error),type='negative')
         async def savePdfMysql(pdfNameValue,pdfDescriptionValue):
             try:
                 async with poolConnection.acquire() as connection:
@@ -65,21 +72,19 @@ async def home(email):
             else:pdfName.style('border:2px white')
             if pdfDescriptionValue=='':pdfDescription.run_method('focus');pdfDescription.style('border:2px solid red');return
             else:pdfDescription.style('border:2px white')
-            pdfName.disable();pdfDescription.disable()
             await savePdfMysql(pdfNameValue,pdfDescriptionValue)
         with pdfsHolder:
             currentPDF = ui.card().classes('w-full h-full hover-card object-cover aspect-rectangle').style('border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);')
             with currentPDF:
-                with ui.grid(columns='62% 9% 9% 9%').classes('w-full'):
-                    pdfName = ui.input('PDF Name',placeholder="Enter PDF's Name",value=name,validation={'PDF Already Exists':lambda x:x not in ['sample','sample2']}).classes('w-full').props('rounded outlined dense')
-                    with ui.button('',icon='edit',on_click=lambda:[pdfName.enable(),pdfDescription.enable()]).classes('h-1/2'):ui.tooltip('Edit')
-                    with ui.button('',icon='delete',color='red',on_click=lambda:currentPDF.delete()).classes('h-1/2'):ui.tooltip('Delete')
-                    saveButton = ui.button(text='',icon='save',color='green',on_click=savePdfs).classes('h-1/2')
+                with ui.row().classes('w-full'):
+                    pdfName = ui.input('PDF Name',placeholder="Enter PDF's Name",value=name,validation={'PDF Already Exists':lambda x:x not in ['sample','sample2']}).classes('w-4/7').props('rounded outlined dense')
+                    with ui.button('',icon='delete',color='red',on_click=lambda:deletePdf(currentPDF)).classes('w-1/6 h-1/6'):ui.tooltip('Delete')
+                    saveButton = ui.button(text='',icon='save',color='green',on_click=savePdfs).classes('w-1/6 h-1/6')
                     if id:saveButton.pdfId = id
                     with saveButton:ui.tooltip('Save')
-                with ui.grid(columns='70% 40%'):
-                    pdfDescription = ui.input('PDF Description',placeholder="Enter PDF's Description",value=description).classes('w-full').props('rounded outlined dense')
-                    ui.button('Editor',icon='picture_as_pdf',on_click=lambda:ui.navigate.to(f'/{pdfName.value}/PDFEditor')).classes('w-full')
+                with ui.row().classes('w-full'):
+                    pdfDescription = ui.input('PDF Description',placeholder="Enter PDF's Description",value=description).classes('w-4/7').props('rounded outlined dense')
+                    ui.button('Editor',icon='picture_as_pdf',on_click=lambda:ui.navigate.to(f'/{pdfName.value}/PDFEditor')).classes('w-1/3')
     ui.button('New PDF',icon='add',on_click=addPdfs)
     with ui.card().classes('p-4 w-full h-screen overflow-auto').style('background-color: rgba(1, 1, 1, 0.3); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
         pdfsHolder = ui.grid(columns=3).classes('w-full gap-2 items-start')
