@@ -56,7 +56,6 @@ async def home(email):
                     async with connection.cursor() as cursor:
                         await cursor.execute('delete from userspdf where email=%s and pdfName=%s',(email,pdfName.value,))
                         widget.delete()
-                        ui.notify('Deleted Successfully',type='positive')
             except Exception as error:ui.notify(str(error),type='negative')
         async def savePdfMysql(pdfNameValue,pdfDescriptionValue):
             try:
@@ -92,8 +91,10 @@ async def home(email):
             async with poolConnection.acquire() as connection:
                 async with connection.cursor() as cursor:
                     await cursor.execute('select id,pdfname,pdfdescription from userspdf where email=%s',(email,))
-                    for i in await cursor.fetchall():addPdfs(*i)
+                    data = await cursor.fetchall()
+                    for i in data:addPdfs(*i)
         except Exception as error:ui.notify(str(error),type='negative')
+    ui.pagination(min=1,max=len(data)//9+1).classes('w-full item-center justify-center').props(f'v-model="current" :max="{len(data)//9+1}" direction-links boundary-links icon-first="skip_previous" icon-last="skip_next" icon-prev="fast_rewind" icon-next="fast_forward" color="grey" active-color="black"')
 
 @ui.page('/Register')
 def register():
@@ -143,9 +144,9 @@ def home():
     with ui.card().classes('absolute-center w-[50%] items-center').style('background-color: rgba(1, 1, 1, 0.7); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
         email = ui.input(label='Email',placeholder='Enter your Email').classes('w-full white-input').props('clearable')
         password = ui.input(label='Password',placeholder='Enter your Password',password=True,password_toggle_button=True).classes('w-full white-input').props('clearable')
-        with ui.row().classes('w-full gap-2 justify-center'):
-            ui.button('Register',icon='person_add',on_click=lambda:ui.navigate.to('/Register')).classes('w-1/4')
-            ui.button('Login',icon='login',on_click=checkLogin,color="white").classes('w-1/4')
+        with ui.row().classes('w-full flex-wrap gap-2 justify-center'):
+            ui.button('Register',icon='person_add',on_click=lambda:ui.navigate.to('/Register')).classes('w-1/4 flex-1')
+            ui.button('Login',icon='login',on_click=checkLogin,color="white").classes('w-1/4 flex-1')
         ui.link('Forgot Password?')
 
 app.on_startup(makeConnection)
