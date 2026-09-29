@@ -29,13 +29,16 @@ def main():
 
     def add(operation):
         with widgetsSaved:
-            if operation=='Text':widget = ui.textarea(label=operation,placeholder='Enter text here').classes('w-full')
-            elif operation=='Link':
-                with ui.card() as widget:
+            with ui.card().classes('w-full') as widgetMaster:
+                with ui.row().classes('w-full items-center justify-between gap-2 flex-wrap'):
+                    ui.label(operation).classes('font-bold').style('font-family:"Ink Free";font-size:25px;font-weight:bold;')
+                    ui.button('',icon='delete',color='red',on_click=lambda:widgetMaster.delete())
+                if operation=='Text':widget = ui.textarea(label=operation,placeholder='Enter text here').classes('w-full')
+                elif operation=='Link':
                     ui.input(label='Link Text',placeholder='Enter the Link Text').classes('w-full')
                     ui.input(label='Link URL',placeholder='Enter link here').classes('w-full')
-            else:widget = ui.input(label=operation,placeholder=f'Enter {operation} here',value='0').classes('w-full')
-            widget.type = operation
+                else:widget = ui.input(label=operation,placeholder=f'Enter {operation} here',value='0').classes('w-full')
+                widget.type = operation
 
     def uploadImage(e):
         try:
@@ -54,9 +57,9 @@ def main():
                         for i in pdfWidgets:
                             ui.item(i,on_click=lambda widget=i: add(widget)).classes('w-full')
                 ui.button('Generate PDF',on_click=generatePDF)
-                ui.button('Properties',on_click=pdfProperties)
+                ui.button('Properties',color='green',on_click=pdfProperties)
         with ui.grid(columns='30% 70%').classes('gap-1 w-full'):
-            widgetsSaved = ui.card().classes('w-full h-screen overflow-auto').style('background-color: rgba(255,255,255,0.9); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);')
+            widgetsSaved = ui.card().classes('w-full h-screen overflow-auto').style('background-color: rgba(1,1,1,0.6); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);')
             with ui.card().classes('w-full h-screen overflow-auto').style('background-color: rgba(1,1,1,0.6); backdrop-filter: blur(0.5px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
                 pdfViewer = ui.html('',sanitize=False).classes('w-full h-full')
 
