@@ -9,36 +9,54 @@ async def makeConnection():
 
 @ui.page('/{currentPdf}/PDFEditor')
 def main(currentPdf):
+    def pdfProperties():
+        with ui.dialog() as propertiesDialog,ui.card().classes('w-1/2 h-3/4'):
+            with ui.row().classes('w-full items-center justify-between gap-2 flex-wrap'):
+                ui.label('PDF Properties').classes('font-bold').style('font-family:"Times New Roman";font-size:26px;font-weight:bold;')
+                ui.button('',icon='save',color='green')
+            for i in ['Author','Creator',"Creator's Password","User's Password"]:
+                ui.input(label=i,placeholder=f"Enter PDF's {i}").classes('w-full')
+        propertiesDialog.open()
     ui.add_css('''body {background-image:url("/static/Original.webp");background-size: cover;background-position: center;;background-attachment: fixed;}''')
+    
     def generatePDF():
         pdfPath = "pdfs/output.pdf"
         pdf = FPDF()
         pdf.add_page()
         pdf.set_font("Arial", size=12)
-        pdf.multi_cell(0,10,text.value)
+        for i in widgetsSaved:
+            widgetType = i.type
+            if widgetType=='Text':pdf.multi_cell(0, 8, str(i.value))
+            elif widgetType=='Link':pdf.write(8, str(i.value), i.value)
+            elif widgetType=='Input':pdf.ln(int(i.value))
         pdf.output(pdfPath)
         pdfViewer.set_content(f'''<iframe src="/pdfs/output.pdf?v={time.time_ns()}" style=" width: 100%; height: 100%; border: none; "> </iframe>''')
+
     def add(operation):
         with widgetsSaved:
-            ui.label(operation).classes('w-full')
+            if operation=='Text':widget = ui.textarea(label=operation,placeholder='Enter text here').classes('w-full')
+            elif operation=='Link':
+                with ui.card() as widget:
+                    ui.input(label='Link Text',placeholder='Enter the Link Text').classes('w-full')
+                    ui.input(label='Link URL',placeholder='Enter link here').classes('w-full')
+            else:widget = ui.input(label=operation,placeholder=f'Enter {operation} here',value='0').classes('w-full')
+            widget.type = operation
+            
     pdfWidgets = ['Text','Table','Link','Image','Line Break']
     with ui.row().classes('w-full gap-1'):
         with ui.card().classes('w-full').style('background-color: rgba(255,255,255,0.9); backdrop-filter: blur(0.5px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
-            with ui.grid(columns='10% 10% 8% 30% 10% 15%').classes('w-full gap-2'):
-                ui.button('Back',color='#00fff2',on_click=lambda:ui.navigate.to('/'),icon='arrow_back')
-                ui.space().classes('w-full')
-                ui.label('Widgets').classes('font-bold').props('dense').style('font-family:"Times New Roman";font-size:26px;font-weight:bold;')
-                with ui.dropdown_button('Select Widget',auto_close=True):
-                    # loads the pdf widgets into dropdown widget
-                    for i in pdfWidgets:
-                        ui.item(i,on_click=lambda:add(i)).classes('w-full')
-                ui.space().classes('w-full')
-                ui.button('Generate PDF',on_click=generatePDF).classes('w-full')
+            with ui.row().classes('w-full gap-4 flex-wrap md:flex-nowrap justify-center'):
+                ui.button('Back',color='#00fff2',on_click=lambda:ui.navigate.to('/'),icon='arrow_back').classes('w-1/5')
+                with ui.row().classes('w-1/2 gap-4 flex-wrap md:flex-nowrap justify-center'):
+                    ui.label('Widgets').classes('text-2xl md:text-4xl font-bold').style('font-family:"Times New Roman";font-size:26px;font-weight:bold;')
+                    with ui.dropdown_button('Select Widget',auto_close=True):
+                        # loads the pdf widgets into dropdown widget
+                        for i in pdfWidgets:
+                            ui.item(i,on_click=lambda widget=i: add(widget)).classes('w-full')
+                ui.button('Generate',icon='picture_as_pdf',on_click=generatePDF).classes('w-1/5')
         with ui.grid(columns='30% 70%').classes('gap-1 w-full'):
             # container for pdf widgets of the current pdf project
             widgetsSaved = ui.card().classes('w-full h-screen overflow-auto').style('background-color: rgba(255,255,255,0.9); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);')
-            with widgetsSaved:
-                text = ui.textarea(placeholder='Enter your Text here')
             with ui.card().classes('w-full h-screen overflow-auto').style('background-color: rgba(1,1,1,0.6); backdrop-filter: blur(0.5px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
                 pdfViewer = ui.html('',sanitize=False).classes('w-full h-full')
 
@@ -49,15 +67,17 @@ async def home(email):
                .my-fab .q-icon {font-size: 16px !important;}
                .hover-card {transition: all 0.3s ease;}
                .hover-card:hover {transform: scale(1.03);box-shadow: 0 10px 25px rgba(0,0,0,0.2);}''')
+
     def addPdfs(id=0,name='',description=''):
+
         async def deletePdf(widget):
             try:
                 async with poolConnection.acquire() as connection:
                     async with connection.cursor() as cursor:
                         await cursor.execute('delete from userspdf where email=%s and pdfName=%s',(email,pdfName.value,))
                         widget.delete()
-                        ui.notify('Deleted Successfully',type='positive')
             except Exception as error:ui.notify(str(error),type='negative')
+
         async def savePdfMysql(pdfNameValue,pdfDescriptionValue):
             try:
                 async with poolConnection.acquire() as connection:
@@ -66,6 +86,7 @@ async def home(email):
                         await cursor.close()
                         ui.notify('Saved Successfully',type='positive')                 
             except Exception as error:ui.notify(str(error),type='negative')
+
         async def savePdfs():
             pdfNameValue,pdfDescriptionValue = pdfName.value,pdfDescription.value
             if pdfNameValue=='':pdfName.run_method('focus');pdfName.style('border:2px solid red');return
@@ -73,6 +94,7 @@ async def home(email):
             if pdfDescriptionValue=='':pdfDescription.run_method('focus');pdfDescription.style('border:2px solid red');return
             else:pdfDescription.style('border:2px white')
             await savePdfMysql(pdfNameValue,pdfDescriptionValue)
+
         with pdfsHolder:
             currentPDF = ui.card().classes('w-full h-full hover-card object-cover aspect-rectangle').style('border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);')
             with currentPDF:
@@ -85,6 +107,7 @@ async def home(email):
                 with ui.row().classes('w-full'):
                     pdfDescription = ui.input('PDF Description',placeholder="Enter PDF's Description",value=description).classes('w-4/7').props('rounded outlined dense')
                     ui.button('Editor',icon='picture_as_pdf',on_click=lambda:ui.navigate.to(f'/{pdfName.value}/PDFEditor')).classes('w-1/3')
+
     ui.button('New PDF',icon='add',on_click=addPdfs)
     with ui.card().classes('p-4 w-full h-screen overflow-auto').style('background-color: rgba(1, 1, 1, 0.3); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
         pdfsHolder = ui.grid(columns=3).classes('w-full gap-2 items-start')
@@ -92,8 +115,10 @@ async def home(email):
             async with poolConnection.acquire() as connection:
                 async with connection.cursor() as cursor:
                     await cursor.execute('select id,pdfname,pdfdescription from userspdf where email=%s',(email,))
-                    for i in await cursor.fetchall():addPdfs(*i)
+                    data = await cursor.fetchall()
+                    for i in data:addPdfs(*i)
         except Exception as error:ui.notify(str(error),type='negative')
+    ui.pagination(min=1,max=len(data)//9+1).classes('w-full item-center justify-center').props(f'v-model="current" :max="{len(data)//9+1}" direction-links boundary-links icon-first="skip_previous" icon-last="skip_next" icon-prev="fast_rewind" icon-next="fast_forward" color="grey" active-color="black"')
 
 @ui.page('/Register')
 def register():
@@ -143,9 +168,9 @@ def home():
     with ui.card().classes('absolute-center w-[50%] items-center').style('background-color: rgba(1, 1, 1, 0.7); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
         email = ui.input(label='Email',placeholder='Enter your Email').classes('w-full white-input').props('clearable')
         password = ui.input(label='Password',placeholder='Enter your Password',password=True,password_toggle_button=True).classes('w-full white-input').props('clearable')
-        with ui.row().classes('w-full gap-2 justify-center'):
-            ui.button('Register',icon='person_add',on_click=lambda:ui.navigate.to('/Register')).classes('w-1/4')
-            ui.button('Login',icon='login',on_click=checkLogin,color="white").classes('w-1/4')
+        with ui.row().classes('w-full flex-wrap gap-2 justify-center'):
+            ui.button('Register',icon='person_add',on_click=lambda:ui.navigate.to('/Register')).classes('w-1/4 flex-1')
+            ui.button('Login',icon='login',on_click=checkLogin,color="white").classes('w-1/4 flex-1')
         ui.link('Forgot Password?')
 
 app.on_startup(makeConnection)
