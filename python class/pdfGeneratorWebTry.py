@@ -2,7 +2,7 @@ from nicegui import ui,app
 from fpdf import FPDF
 import time
 
-@ui.page('/')
+@ui.page('/',)
 def main():
     ui.add_css('''body {background-image:url("/static/Original.webp");background-size: cover;background-position:top center;}''')
     def pdfProperties():
@@ -56,8 +56,8 @@ def main():
                     with ui.dropdown_button('Select Widget',auto_close=True).classes('w-3/4'):
                         for i in pdfWidgets:
                             ui.item(i,on_click=lambda widget=i: add(widget)).classes('w-full')
-                ui.button('Generate PDF',on_click=generatePDF)
-                ui.button('Properties',color='green',on_click=pdfProperties)
+                ui.button('Generate PDF',icon='picture_as_pdf',on_click=generatePDF)
+                ui.button('Properties',icon='settings',color='green',on_click=pdfProperties)
         with ui.grid(columns='30% 70%').classes('gap-1 w-full'):
             widgetsSaved = ui.card().classes('w-full h-screen overflow-auto').style('background-color: rgba(1,1,1,0.6); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);')
             with ui.card().classes('w-full h-screen overflow-auto').style('background-color: rgba(1,1,1,0.6); backdrop-filter: blur(0.5px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
