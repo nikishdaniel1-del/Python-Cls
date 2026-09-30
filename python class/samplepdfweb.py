@@ -1,4 +1,6 @@
 from nicegui import ui,app,run
+from nicegui.elements.input import Input
+from nicegui.elements.textarea import Textarea
 from fpdf import FPDF
 import time,aiomysql
 
@@ -20,43 +22,50 @@ def main(currentPdf):
     ui.add_css('''body {background-image:url("/static/Original.webp");background-size: cover;background-position: center;;background-attachment: fixed;}''')
     
     def generatePDF():
-        pdfPath = "pdfs/output.pdf"
+        pdfPath = f"pdfs/{currentPdf}.pdf"
         pdf = FPDF()
         pdf.add_page()
         pdf.set_font("Arial", size=12)
-        for i in widgetsSaved:
-            widgetType = i.type
-            if widgetType=='Text':pdf.multi_cell(0, 8, str(i.value))
-            elif widgetType=='Link':pdf.write(8, str(i.value), i.value)
-            elif widgetType=='Input':pdf.ln(int(i.value))
+        for currentWidget in widgetsSaved:
+            widgetType = currentWidget.type
+            for widget in currentWidget:
+                if isinstance(widget,(Textarea,Input)):
+                    widgetValue = widget.value
+                    if widgetType=='Text':pdf.set_x(pdf.l_margin);pdf.multi_cell(0,8,str(widgetValue))
+                    elif widgetType=='Link':pdf.set_x(pdf.l_margin);pdf.write(8,str(widgetValue),widgetValue)
+                    elif widgetType=='Line Break':pdf.ln(int(widgetValue))
         pdf.output(pdfPath)
-        pdfViewer.set_content(f'''<iframe src="/pdfs/output.pdf?v={time.time_ns()}" style=" width: 100%; height: 100%; border: none; "> </iframe>''')
+        pdfViewer.set_content(f'''<iframe src="/pdfs/{currentPdf}.pdf?v={time.time_ns()}" style=" width: 100%; height: 100%; border: none; "> </iframe>''')
 
     def add(operation):
         with widgetsSaved:
-            if operation=='Text':widget = ui.textarea(label=operation,placeholder='Enter text here').classes('w-full')
-            elif operation=='Link':
-                with ui.card() as widget:
-                    ui.input(label='Link Text',placeholder='Enter the Link Text').classes('w-full')
-                    ui.input(label='Link URL',placeholder='Enter link here').classes('w-full')
-            else:widget = ui.input(label=operation,placeholder=f'Enter {operation} here',value='0').classes('w-full')
-            widget.type = operation
+            with ui.card().classes('w-full hover-card').style('background-color: rgba(255,255,255,0.9); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);') as widgetMaster:
+                with ui.row().classes('w-full items-center justify-between gap-2 flex-wrap'):
+                    ui.label(operation).classes('font-bold').style('font-family:"Ink Free";font-size:25px;font-weight:bold;')
+                    ui.button('',icon='delete',color='red',on_click=lambda:widgetMaster.delete())
+                if operation=='Text':ui.textarea(label=operation,placeholder='Enter text here').classes('w-full').props('outlined dense')
+                elif operation=='Link':
+                    ui.input(label='Link Text',placeholder='Enter the Link Text').classes('w-full').props('outlined dense')
+                    ui.input(label='Link URL',placeholder='Enter link here').classes('w-full').props('outlined dense')
+                else:ui.input(label=operation,placeholder=f'Enter {operation} here',value='0').classes('w-full').props('outlined dense')
+                widgetMaster.type = operation
             
     pdfWidgets = ['Text','Table','Link','Image','Line Break']
     with ui.row().classes('w-full gap-1'):
         with ui.card().classes('w-full').style('background-color: rgba(255,255,255,0.9); backdrop-filter: blur(0.5px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
-            with ui.row().classes('w-full gap-4 flex-wrap md:flex-nowrap justify-center'):
+            with ui.row().classes('w-full items-center justify-between gap-2 flex-wrap'):
                 ui.button('Back',color='#00fff2',on_click=lambda:ui.navigate.to('/'),icon='arrow_back').classes('w-1/5')
-                with ui.row().classes('w-1/2 gap-4 flex-wrap md:flex-nowrap justify-center'):
+                with ui.row().classes('w-1/2 items-center justify-center gap-2 flex-wrap'):
                     ui.label('Widgets').classes('text-2xl md:text-4xl font-bold').style('font-family:"Times New Roman";font-size:26px;font-weight:bold;')
                     with ui.dropdown_button('Select Widget',auto_close=True):
                         # loads the pdf widgets into dropdown widget
                         for i in pdfWidgets:
                             ui.item(i,on_click=lambda widget=i: add(widget)).classes('w-full')
                 ui.button('Generate',icon='picture_as_pdf',on_click=generatePDF).classes('w-1/5')
+                ui.button('',color='green',icon='settings',on_click=pdfProperties).classes('w-1/18')
         with ui.grid(columns='30% 70%').classes('gap-1 w-full'):
             # container for pdf widgets of the current pdf project
-            widgetsSaved = ui.card().classes('w-full h-screen overflow-auto').style('background-color: rgba(255,255,255,0.9); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);')
+            widgetsSaved = ui.card().classes('w-full h-screen overflow-auto').style('background-color: rgba(1,1,1,0.6); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);')
             with ui.card().classes('w-full h-screen overflow-auto').style('background-color: rgba(1,1,1,0.6); backdrop-filter: blur(0.5px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
                 pdfViewer = ui.html('',sanitize=False).classes('w-full h-full')
 
@@ -64,9 +73,7 @@ def main(currentPdf):
 async def home(email):
     ui.add_css('''body {background-image:url("/static/foggy-forest-landscape-dark-silhouette-mysterious-atmosphere-generated-by-ai.avif");background-size: cover;background-position: center;background-attachment: fixed;}
                .my-fab .q-btn {width: 28px !important;height: 28px !important;min-width: 28px !important;min-height: 28px !important;display: flex !important;align-items: center !important;justify-content: center !important;}
-               .my-fab .q-icon {font-size: 16px !important;}
-               .hover-card {transition: all 0.3s ease;}
-               .hover-card:hover {transform: scale(1.03);box-shadow: 0 10px 25px rgba(0,0,0,0.2);}''')
+               .my-fab .q-icon {font-size: 16px !important;}''')
 
     def addPdfs(id=0,name='',description=''):
 
@@ -173,6 +180,8 @@ def home():
             ui.button('Login',icon='login',on_click=checkLogin,color="white").classes('w-1/4 flex-1')
         ui.link('Forgot Password?')
 
+ui.add_css('''.hover-card {transition: all 0.3s ease;}
+           .hover-card:hover {transform: scale(1.03);box-shadow: 0 10px 25px rgba(0,0,0,0.2);}''',shared=True)
 app.on_startup(makeConnection)
 app.add_static_files('/static','Data')
 app.add_static_files('/pdfs','pdfs')
