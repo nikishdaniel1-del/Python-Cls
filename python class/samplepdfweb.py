@@ -54,6 +54,7 @@ def main(currentPdf):
                         for i in pdfWidgets:
                             ui.item(i,on_click=lambda widget=i: add(widget)).classes('w-full')
                 ui.button('Generate',icon='picture_as_pdf',on_click=generatePDF).classes('w-1/5')
+                ui.button('',icon='settings',on_click=pdfProperties).classes('w-1/18')
         with ui.grid(columns='30% 70%').classes('gap-1 w-full'):
             # container for pdf widgets of the current pdf project
             widgetsSaved = ui.card().classes('w-full h-screen overflow-auto').style('background-color: rgba(255,255,255,0.9); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);')
