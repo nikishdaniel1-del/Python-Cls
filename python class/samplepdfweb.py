@@ -172,7 +172,7 @@ def home():
                     if not passwordCheck:ui.notify("Email doesn't exists.",type='info',color='red');return
                     elif currentPassword!=passwordCheck[0]:ui.notify('Invalid Password.');return
                     ui.notify('Login Successfully',type='positive')
-                    ui.timer(1,lambda:ui.navigate.to(f'/{currentEmail}/MyPDFs'),immediate=False)
+                    ui.timer(0.6,lambda:ui.navigate.to(f'/{currentEmail}/MyPDFs'),immediate=False)
         except Exception as error:ui.notify(str(error),type='negative')
     ui.add_css('''body {background-image: url("/static/mountain.webp");background-size: cover;background-position: center;background-attachment: fixed;}
                .white-input .q-field__label {color: white !important;}
