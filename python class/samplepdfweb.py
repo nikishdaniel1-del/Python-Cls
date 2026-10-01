@@ -31,6 +31,13 @@ def main(currentPdf):
                 try:
                     if widgetType=='Text':pdf.set_x(pdf.l_margin);pdf.multi_cell(0,8,str(currentInputs[0].value))
                     elif widgetType=='Link':pdf.set_x(pdf.l_margin);pdf.write(10,text=currentInputs[0].value,link=currentInputs[1].value)
+                    elif widgetType=='Table':
+                        with pdf.table() as table:
+                            row = table.row()
+                            for header in currentInputs[0].value.split(','):row.cell(header)
+                            for data in currentInputs[1].value.split(';'):
+                                row = table.row()
+                                for currentData in data.split(','):row.cell(currentData)
                     elif widgetType=='Line Break':pdf.ln(int(currentInputs[0].value))
                 except Exception as error:ui.notify(f"Error processing widget '{widgetType}': {error}", color='negative');return
             pdf.output(pdfPath)
@@ -51,6 +58,10 @@ def main(currentPdf):
                     linkTextWidget = ui.input(label='Link Text',placeholder='Enter the Link Text').classes('w-full').props('outlined dense')
                     linkUrlWidget = ui.input(label='Link URL',placeholder='Enter link here').classes('w-full').props('outlined dense')
                     widgetMaster.inputs.append(linkTextWidget);widgetMaster.inputs.append(linkUrlWidget)
+                elif operation=='Table':
+                    tableHeaderWidget = ui.input(label='Table Header',placeholder='Enter table header here').classes('w-full').props('outlined dense')
+                    tableDataWidget = ui.textarea(label='Table Data',placeholder='Enter table data here').classes('w-full').props('outlined dense')
+                    widgetMaster.inputs.append(tableHeaderWidget);widgetMaster.inputs.append(tableDataWidget)
                 else:
                     inputWidget = ui.input(label=operation,placeholder=f'Enter {operation} here',value='0').classes('w-full').props('outlined dense')
                     widgetMaster.inputs.append(inputWidget)
