@@ -1,5 +1,6 @@
 from nicegui import ui,app
 from fpdf import FPDF
+from os import environ,path
 import time
 
 @ui.page('/',)
@@ -14,18 +15,29 @@ def main():
                 ui.input(label=i,placeholder=f"Enter PDF's {i}").classes('w-full')
         propertiesDialog.open()
 
-    def generatePDF():
-        pdfPath = "pdfs/output.pdf"
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_font("Arial", size=12)
-        for i in widgetsSaved:
-            widgetType = i.type
-            if widgetType=='Text':pdf.set_x(pdf.l_margin);pdf.multi_cell(0, 8, str(i.value))
-            elif widgetType=='Link':pdf.set_x(pdf.l_margin);pdf.write(8, str(i.value), i.value)
-            elif widgetType=='Input':pdf.ln(int(i.value))
-        pdf.output(pdfPath)
-        pdfViewer.set_content(f'''<iframe src="/pdfs/output.pdf?v={time.time_ns()}" style=" width: 100%; height: 100%; border: none; "> </iframe>''')
+    def generatePDF(currentPdf='output'):
+        try:
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.set_font("Arial", size=12)
+            for currentWidget in widgetsSaved:
+                widgetType = currentWidget.type
+                currentInputs = currentWidget.inputs
+                try:
+                    if widgetType=='Text':pdf.set_x(pdf.l_margin);pdf.multi_cell(0,8,str(currentInputs[0].value))
+                    elif widgetType=='Link':pdf.set_x(pdf.l_margin);pdf.write(10,text=currentInputs[0].value,link=currentInputs[1].value)
+                    elif widgetType=='Table':
+                        with pdf.table() as table:
+                            row = table.row()
+                            for header in currentInputs[0].value.split(','):row.cell(header)
+                            for data in currentInputs[1].value.split(';'):
+                                row = table.row()
+                                for currentData in data.split(','):row.cell(currentData)
+                    elif widgetType=='Line Break':pdf.ln(int(currentInputs[0].value))
+                except Exception as error:ui.notify(f"Error processing widget '{widgetType}': {error}", color='negative');return
+            pdf.output(path.join(pdfFolderPath,f"{currentPdf}.pdf"))
+            pdfViewer.set_content(f'''<iframe src="/pdfs/{currentPdf}.pdf?v={time.time_ns()}" style="width: 100%; height: 100%; border: none;"></iframe>''')
+        except Exception as error:ui.notify(f"Error generating PDF: {error}", color='negative');return
 
     def add(operation):
         with widgetsSaved:
@@ -63,6 +75,7 @@ def main():
             with ui.card().classes('w-full h-screen overflow-auto').style('background-color: rgba(1,1,1,0.6); backdrop-filter: blur(0.5px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
                 pdfViewer = ui.html('',sanitize=False).classes('w-full h-full')
 
+pdfFolderPath = path.join(environ['USERPROFILE'],'pdfs')
 app.add_static_files('/static','Data')
-app.add_static_files('/pdfs','pdfs')
+app.add_static_files('/pdfs',pdfFolderPath)
 ui.run(port=8085,title='PDF Generator')
