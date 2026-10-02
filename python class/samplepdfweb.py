@@ -49,7 +49,7 @@ def main(currentPdf):
                     ui.input(label='Link URL',placeholder='Enter link here').classes('w-full').props('outlined dense')
                 else:ui.input(label=operation,placeholder=f'Enter {operation} here',value='0').classes('w-full').props('outlined dense')
                 widgetMaster.type = operation
-            
+
     pdfWidgets = ['Text','Table','Link','Image','Line Break']
     with ui.row().classes('w-full gap-1'):
         with ui.card().classes('w-full').style('background-color: rgba(255,255,255,0.9); backdrop-filter: blur(0.5px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):

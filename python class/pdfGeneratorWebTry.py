@@ -21,8 +21,8 @@ def main():
         pdf.set_font("Arial", size=12)
         for i in widgetsSaved:
             widgetType = i.type
-            if widgetType=='Text':pdf.multi_cell(0, 8, str(i.value))
-            elif widgetType=='Link':pdf.write(8, str(i.value), i.value)
+            if widgetType=='Text':pdf.set_x(pdf.l_margin);pdf.multi_cell(0, 8, str(i.value))
+            elif widgetType=='Link':pdf.set_x(pdf.l_margin);pdf.write(8, str(i.value), i.value)
             elif widgetType=='Input':pdf.ln(int(i.value))
         pdf.output(pdfPath)
         pdfViewer.set_content(f'''<iframe src="/pdfs/output.pdf?v={time.time_ns()}" style=" width: 100%; height: 100%; border: none; "> </iframe>''')
