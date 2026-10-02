@@ -1,7 +1,6 @@
 from nicegui import ui,app,run
-from nicegui.elements.input import Input
-from nicegui.elements.textarea import Textarea
 from fpdf import FPDF
+from os import path,environ,mkdir
 import time,aiomysql
 
 poolConnection = None
@@ -22,32 +21,50 @@ def main(currentPdf):
     ui.add_css('''body {background-image:url("/static/Original.webp");background-size: cover;background-position: center;;background-attachment: fixed;}''')
     
     def generatePDF():
-        pdfPath = f"pdfs/{currentPdf}.pdf"
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_font("Arial", size=12)
-        for currentWidget in widgetsSaved:
-            widgetType = currentWidget.type
-            for widget in currentWidget:
-                if isinstance(widget,(Textarea,Input)):
-                    widgetValue = widget.value
-                    if widgetType=='Text':pdf.set_x(pdf.l_margin);pdf.multi_cell(0,8,str(widgetValue))
-                    elif widgetType=='Link':pdf.set_x(pdf.l_margin);pdf.write(8,str(widgetValue),widgetValue)
-                    elif widgetType=='Line Break':pdf.ln(int(widgetValue))
-        pdf.output(pdfPath)
-        pdfViewer.set_content(f'''<iframe src="/pdfs/{currentPdf}.pdf?v={time.time_ns()}" style=" width: 100%; height: 100%; border: none; "> </iframe>''')
+        try:
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.set_font("Arial", size=12)
+            for currentWidget in widgetsSaved:
+                widgetType = currentWidget.type
+                currentInputs = currentWidget.inputs
+                try:
+                    if widgetType=='Text':pdf.set_x(pdf.l_margin);pdf.multi_cell(0,8,str(currentInputs[0].value))
+                    elif widgetType=='Link':pdf.set_x(pdf.l_margin);pdf.write(10,text=currentInputs[0].value,link=currentInputs[1].value)
+                    elif widgetType=='Table':
+                        with pdf.table() as table:
+                            row = table.row()
+                            for header in currentInputs[0].value.split(','):row.cell(header)
+                            for data in currentInputs[1].value.split(';'):
+                                row = table.row()
+                                for currentData in data.split(','):row.cell(currentData)
+                    elif widgetType=='Line Break':pdf.ln(int(currentInputs[0].value))
+                except Exception as error:ui.notify(f"Error processing widget '{widgetType}': {error}", color='negative');return
+            pdf.output(pdfPath)
+            pdfViewer.set_content(f'''<iframe src="/pdfs/{currentPdf}.pdf?v={time.time_ns()}" style="width: 100%; height: 100%; border: none;"></iframe>''')
+        except Exception as error:ui.notify(f"Error generating PDF: {error}", color='negative');return
 
     def add(operation):
         with widgetsSaved:
             with ui.card().classes('w-full hover-card').style('background-color: rgba(255,255,255,0.9); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);') as widgetMaster:
+                widgetMaster.inputs = []
                 with ui.row().classes('w-full items-center justify-between gap-2 flex-wrap'):
                     ui.label(operation).classes('font-bold').style('font-family:"Ink Free";font-size:25px;font-weight:bold;')
                     ui.button('',icon='delete',color='red',on_click=lambda:widgetMaster.delete())
-                if operation=='Text':ui.textarea(label=operation,placeholder='Enter text here').classes('w-full').props('outlined dense')
+                if operation=='Text':
+                    textWidget = ui.textarea(label=operation,placeholder='Enter text here').classes('w-full').props('outlined dense')
+                    widgetMaster.inputs.append(textWidget)
                 elif operation=='Link':
-                    ui.input(label='Link Text',placeholder='Enter the Link Text').classes('w-full').props('outlined dense')
-                    ui.input(label='Link URL',placeholder='Enter link here').classes('w-full').props('outlined dense')
-                else:ui.input(label=operation,placeholder=f'Enter {operation} here',value='0').classes('w-full').props('outlined dense')
+                    linkTextWidget = ui.input(label='Link Text',placeholder='Enter the Link Text').classes('w-full').props('outlined dense')
+                    linkUrlWidget = ui.input(label='Link URL',placeholder='Enter link here').classes('w-full').props('outlined dense')
+                    widgetMaster.inputs.append(linkTextWidget);widgetMaster.inputs.append(linkUrlWidget)
+                elif operation=='Table':
+                    tableHeaderWidget = ui.input(label='Table Header',placeholder='Enter table header here').classes('w-full').props('outlined dense')
+                    tableDataWidget = ui.textarea(label='Table Data',placeholder='Enter table data here').classes('w-full').props('outlined dense')
+                    widgetMaster.inputs.append(tableHeaderWidget);widgetMaster.inputs.append(tableDataWidget)
+                else:
+                    inputWidget = ui.input(label=operation,placeholder=f'Enter {operation} here',value='0').classes('w-full').props('outlined dense')
+                    widgetMaster.inputs.append(inputWidget)
                 widgetMaster.type = operation
 
     pdfWidgets = ['Text','Table','Link','Image','Line Break']
@@ -67,7 +84,11 @@ def main(currentPdf):
             # container for pdf widgets of the current pdf project
             widgetsSaved = ui.card().classes('w-full h-screen overflow-auto').style('background-color: rgba(1,1,1,0.6); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);')
             with ui.card().classes('w-full h-screen overflow-auto').style('background-color: rgba(1,1,1,0.6); backdrop-filter: blur(0.5px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
+                if not path.exists(pdfFolder):mkdir(pdfFolder)
+                pdfPath = path.join(pdfFolder,f'{currentPdf}.pdf')
                 pdfViewer = ui.html('',sanitize=False).classes('w-full h-full')
+                if path.exists(pdfPath):pdfViewer.set_content(f'''<iframe src="/pdfs/{currentPdf}.pdf?v={time.time_ns()}" style="width: 100%; height: 100%; border: none;"></iframe>''')
+                else:pdfViewer.set_content(f'''<div class="w-full h-full flex items-center justify-center text-white text-2xl">No PDF Found</div>''')
 
 @ui.page('/{email}/MyPDFs')
 async def home(email):
@@ -162,7 +183,7 @@ def home():
                     if not passwordCheck:ui.notify("Email doesn't exists.",type='info',color='red');return
                     elif currentPassword!=passwordCheck[0]:ui.notify('Invalid Password.');return
                     ui.notify('Login Successfully',type='positive')
-                    ui.timer(1,lambda:ui.navigate.to(f'/{currentEmail}/MyPDFs'),immediate=False)
+                    ui.timer(0.6,lambda:ui.navigate.to(f'/{currentEmail}/MyPDFs'),immediate=False)
         except Exception as error:ui.notify(str(error),type='negative')
     ui.add_css('''body {background-image: url("/static/mountain.webp");background-size: cover;background-position: center;background-attachment: fixed;}
                .white-input .q-field__label {color: white !important;}
@@ -183,6 +204,7 @@ def home():
 ui.add_css('''.hover-card {transition: all 0.3s ease;}
            .hover-card:hover {transform: scale(1.03);box-shadow: 0 10px 25px rgba(0,0,0,0.2);}''',shared=True)
 app.on_startup(makeConnection)
+pdfFolder = path.join(environ["USERPROFILE"],'pdfs')
 app.add_static_files('/static','Data')
-app.add_static_files('/pdfs','pdfs')
+app.add_static_files('/pdfs',pdfFolder)
 ui.run(port=8085,)
