@@ -1,6 +1,6 @@
 from nicegui import ui,app
 from fpdf import FPDF
-from os import environ,path
+from os import environ,path,mkdir
 import time
 
 @ui.page('/',)
@@ -15,7 +15,7 @@ def main():
                 ui.input(label=i,placeholder=f"Enter PDF's {i}").classes('w-full')
         propertiesDialog.open()
 
-    def generatePDF(currentPdf='output'):
+    async def generatePDF(currentPdf='output'):
         try:
             pdf = FPDF()
             pdf.add_page()
@@ -33,6 +33,7 @@ def main():
                             for data in currentInputs[1].value.split(';'):
                                 row = table.row()
                                 for currentData in data.split(','):row.cell(currentData)
+                    elif widgetType=='Image':pdf.image(path.join(dataFolderPath,currentInputs[0].value),x=pdf.l_margin,w=100)
                     elif widgetType=='Line Break':pdf.ln(int(currentInputs[0].value))
                 except Exception as error:ui.notify(f"Error processing widget '{widgetType}': {error}", color='negative');return
             pdf.output(path.join(pdfFolderPath,f"{currentPdf}.pdf"))
@@ -41,22 +42,39 @@ def main():
 
     def add(operation):
         with widgetsSaved:
-            with ui.card().classes('w-full') as widgetMaster:
+            with ui.card().classes('w-full hover-card').style('background-color: rgba(255,255,255,0.9); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);') as widgetMaster:
+                widgetMaster.inputs = []
                 with ui.row().classes('w-full items-center justify-between gap-2 flex-wrap'):
                     ui.label(operation).classes('font-bold').style('font-family:"Ink Free";font-size:25px;font-weight:bold;')
                     ui.button('',icon='delete',color='red',on_click=lambda:widgetMaster.delete())
-                if operation=='Text':widget = ui.textarea(label=operation,placeholder='Enter text here').classes('w-full')
+                if operation=='Text':
+                    textWidget = ui.textarea(label=operation,placeholder='Enter text here').classes('w-full').props('outlined dense')
+                    widgetMaster.inputs.append(textWidget)
                 elif operation=='Link':
-                    ui.input(label='Link Text',placeholder='Enter the Link Text').classes('w-full')
-                    ui.input(label='Link URL',placeholder='Enter link here').classes('w-full')
-                else:widget = ui.input(label=operation,placeholder=f'Enter {operation} here',value='0').classes('w-full')
-                widget.type = operation
-
-    def uploadImage(e):
-        try:
-            image_data = e.file.read()
-            print(image_data)
-        except Exception as error:ui.notify(f"Error reading image: {error}", color='negative'); return
+                    linkTextWidget = ui.input(label='Link Text',placeholder='Enter the Link Text').classes('w-full').props('outlined dense')
+                    linkUrlWidget = ui.input(label='Link URL',placeholder='Enter link here').classes('w-full').props('outlined dense')
+                    widgetMaster.inputs.append(linkTextWidget);widgetMaster.inputs.append(linkUrlWidget)
+                elif operation=='Table':
+                    tableHeaderWidget = ui.input(label='Table Header',placeholder='Enter table header here').classes('w-full').props('outlined dense')
+                    tableDataWidget = ui.textarea(label='Table Data',placeholder='Enter table data here').classes('w-full').props('outlined dense')
+                    widgetMaster.inputs.append(tableHeaderWidget);widgetMaster.inputs.append(tableDataWidget)
+                elif operation=='Image':
+                    async def handleUpload(e):
+                        try:
+                            fileName = e.file.name
+                            filePath.value = fileName
+                            with open(path.join(dataFolderPath,fileName), 'wb') as f:f.write(await e.file.read())
+                        except Exception as error:ui.notify(f"Error reading image: {error}", color='negative'); return
+                    uploader = ui.upload(on_upload=handleUpload, auto_upload=True).props('accept="image/*"').classes('hidden')
+                    with ui.row().classes('w-full items-center justify-between gap-2 flex-wrap'):
+                        filePath = ui.input(label='Image Path').classes('w-8/10')
+                        filePath.disable()
+                        ui.button('',icon='upload',color='green',on_click=lambda:uploader.run_method('pickFiles'))
+                    widgetMaster.inputs.append(filePath)
+                else:
+                    inputWidget = ui.input(label=operation,placeholder=f'Enter {operation} here',value='0').classes('w-full').props('outlined dense')
+                    widgetMaster.inputs.append(inputWidget)
+                widgetMaster.type = operation
 
     pdfWidgets = ['Text','Table','Link','Image','Line Break']
     with ui.row().classes('w-full gap-1'):
@@ -75,7 +93,11 @@ def main():
             with ui.card().classes('w-full h-screen overflow-auto').style('background-color: rgba(1,1,1,0.6); backdrop-filter: blur(0.5px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
                 pdfViewer = ui.html('',sanitize=False).classes('w-full h-full')
 
-pdfFolderPath = path.join(environ['USERPROFILE'],'pdfs')
-app.add_static_files('/static','Data')
+appBasePath = path.join(environ['USERPROFILE'],'PDF Creator')
+if not path.exists(appBasePath):mkdir(appBasePath)
+pdfFolderPath = path.join(appBasePath,'pdfs')
+if not path.exists(pdfFolderPath):mkdir(pdfFolderPath)
+dataFolderPath = path.join(appBasePath,'Data')
+if not path.exists(dataFolderPath):mkdir(dataFolderPath)
 app.add_static_files('/pdfs',pdfFolderPath)
 ui.run(port=8085,title='PDF Generator')
