@@ -6,6 +6,7 @@ from PIL import ImageEnhance,Image
 normalFont = FontFace(family='Times',emphasis='',size_pt=10)
 pdfCreator = FPDF()
 pdfCreator.add_page()
+
 pdfCreator.line(10,10,200,10)
 pdfCreator.set_font('Times','B',18)
 pdfCreator.cell(w=0,h=10,text='Hi Welcome to FPDF.',align='C',center=True)
