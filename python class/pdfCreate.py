@@ -31,7 +31,7 @@ pdfCreator.cell(0,10,'Introduction',link=introductionLink)
 pdfCreator.ln(10)
 sampleLink = pdfCreator.add_link()
 pdfCreator.cell(0,10,'Sample',link=sampleLink)
-pdfCreator.add_page()
+pdfCreator.emphasis
 pdfCreator.set_link(introductionLink,page=2)
 pdfCreator.cell(0,10,'Introduction')
 # pdfCreator.image(r'c:\Users\WELCOME\Downloads\029972cf-ca2e-4eff-bb51-eba3a3e15d8c.png',20,20,170,100,alt_text='Flow Chart',title='Sample Flow')

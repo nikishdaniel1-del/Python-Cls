@@ -1,7 +1,7 @@
 from nicegui import ui,app,run
 from fpdf import FPDF
 from os import path,environ,mkdir
-import time,aiomysql
+import time,aiomysql,shutil
 
 poolConnection = None
 async def makeConnection():
@@ -24,7 +24,7 @@ def main(currentPdf):
         try:
             pdf = FPDF()
             pdf.add_page()
-            pdf.set_font("Arial", size=12)
+            pdf.set_font("Arial",size=12)
             for currentWidget in widgetsSaved:
                 widgetType = currentWidget.type
                 currentInputs = currentWidget.inputs
@@ -204,7 +204,12 @@ def home():
 ui.add_css('''.hover-card {transition: all 0.3s ease;}
            .hover-card:hover {transform: scale(1.03);box-shadow: 0 10px 25px rgba(0,0,0,0.2);}''',shared=True)
 app.on_startup(makeConnection)
-pdfFolder = path.join(environ["USERPROFILE"],'pdfs')
+appBasePath = path.join(environ['USERPROFILE'],'PDF Creator')
+if not path.exists(appBasePath):mkdir(appBasePath)
+pdfFolder = path.join(appBasePath,'pdfs')
+if not path.exists(pdfFolder):mkdir(pdfFolder)
+fontFolder = path.join(appBasePath,'Fonts')
+if not path.exists(fontFolder):mkdir(fontFolder)
 app.add_static_files('/static','Data')
 app.add_static_files('/pdfs',pdfFolder)
 ui.run(port=8085,)
