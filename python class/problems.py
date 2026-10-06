@@ -171,4 +171,3 @@ for x in stream:
     index += 1
 result += 2*(n-index)
 print(result)'''
-
