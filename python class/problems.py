@@ -111,7 +111,7 @@ print(''.join(stream))'''
 # i/p : 2+4*3
 # o/p : 18
 
-s = '2*(7-2)*2-9'
+'''s = '2*(7-2)*2-9'
 stack = []
 operation = []
 for i in s:
@@ -152,7 +152,7 @@ for i in stack:
     elif currentOperation=='*':first *= integer
     else:first//=integer
     index += 1
-print(first)
+print(first)'''
 
 # leetcode 1386
 '''from collections import defaultdict
