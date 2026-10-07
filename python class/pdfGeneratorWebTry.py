@@ -1,6 +1,7 @@
 from nicegui import ui,app
 from fpdf import FPDF
 from os import environ,path,mkdir
+from matplotlib.figure import Figure
 import time,pandas as pd
 
 @ui.page('/')
@@ -11,7 +12,11 @@ def main():
             with ui.row().classes('w-full items-center justify-between gap-2 flex-wrap'):
                 ui.label('PDF Properties').classes('font-bold').style('font-family:"Times New Roman";font-size:26px;font-weight:bold;')
                 ui.button('',icon='save',color='green')
-            for i in ['Author','Creator','Producer',"Creator's Password","User's Password"]:
+            ui.select(label='Orientation',options=['Portrait','Landscape'],value='Portrait').classes('w-full')
+            encryptionCheck = ui.checkbox(text='Make PDF Encrypted').classes('w-full')
+            ui.input(label="Creator's Password",placeholder="Enter Creator's Password").classes('w-full').bind_visibility_from(encryptionCheck,'value')
+            ui.input(label="User's Password",placeholder="Enter User's Password").classes('w-full').bind_visibility_from(encryptionCheck,'value')
+            for i in ['Author','Creator','Producer']:
                 ui.input(label=i,placeholder=f"Enter PDF's {i}",value='').classes('w-full')
         propertiesDialog.open()
 
@@ -29,12 +34,19 @@ def main():
                         pdf.write(10,str(currentInputs[0].value))
                     elif widgetType=='Link':pdf.write(10,text=currentInputs[0].value,link=currentInputs[1].value)
                     elif widgetType=='Table':
-                        currentFilePath = currentInputs[0].value
-                        if not path.exists(currentFilePath):ui.notify(f"File '{currentFilePath}' does not exist.", color='negative');return
+                        df = currentInputs[0]
+                        with pdf.table() as dataTable:
+                            row = dataTable.row()
+                            for column in df.columns:
+                                row.cell(str(column))
+                            for _, data in df.iterrows():
+                                row = dataTable.row()
+                                for value in data:
+                                    row.cell(str(value))
                     elif widgetType=='Image':
                         currentFilePath = currentInputs[0].value
                         if not path.exists(currentFilePath):ui.notify(f"File '{currentFilePath}' does not exist.", color='negative');return
-                        try:pdf.image(currentFilePath,w=100)
+                        try:pdf.image(currentFilePath)
                         except Exception as error:ui.notify(f"Error adding image '{currentFilePath}': {error}", color='negative');return
                     elif widgetType=='Line Break':pdf.ln(int(currentInputs[0].value))
                 except Exception as error:ui.notify(f"Error processing widget '{widgetType}': {error}", color='negative');return
@@ -66,8 +78,35 @@ def main():
                     linkUrlWidget = ui.input(label='Link URL',placeholder='Enter link here').classes('w-full').props('outlined dense')
                     widgetMaster.inputs.append(linkTextWidget);widgetMaster.inputs.append(linkUrlWidget)
                 elif operation=='Table':
-                    filePath = ui.input(label='Data File',placeholder='Enter the path of the data file').classes('w-full').props('outlined dense')
-                    widgetMaster.inputs.append(filePath)
+                    with ui.tabs().classes('w-full') as tableTabs:
+                        tableTab = ui.tab('Table Tab',label='Table Tab').classes('w-full h-full border border-gray-400 rounded-lg')
+                        graphTab = ui.tab('Graph Tab',label='Graph Tab').classes('w-full h-full border border-gray-400 rounded-lg')
+                    with ui.tab_panels(tableTabs,value=tableTab).classes('w-full border border-gray-400 rounded-lg'):
+                        def fetchData():
+                            df = pd.read_excel(filePath.value,sheet_name=sheetWidget.value)
+                            df.dropna(how='all').dropna(axis=1,how='all')
+                            df.columns = df.iloc[0]
+                            df = df.iloc[1:].reset_index(drop=True)
+                            widgetMaster.inputs = [df]
+                            ui.notify('Data Loaded Successfully.',type='positive')
+                        def readExcel(currentFilePath):
+                            try:
+                                sheets = pd.ExcelFile(currentFilePath).sheet_names
+                                sheetWidget.options,sheetWidget.value = sheets,sheets[0]
+                            except Exception as error:ui.notify(f'Error Loading File {error}',type='negative')
+                        def fileLoader():
+                            currentFilePath = filePath.value
+                            file,extension = path.splitext(currentFilePath)
+                            if extension=='.xlsx':readExcel(currentFilePath)
+                            else:ui.notify("This type of file can't be Uploaded.",type='warning')
+                        with ui.tab_panel(tableTab).classes('w-full h-full border border-gray-400 rounded-lg'):
+                            filePath = ui.input(label='Data File',placeholder='Enter the path of the data file').classes('w-full').props('outlined dense')
+                            ui.button(text='Upload File',icon='refresh',on_click=fileLoader)
+                            sheetWidget = ui.select(label='Select the Sheet',options=[]).classes('w-full')
+                            ui.button('Load Data',on_click=fetchData).bind_enabled_from(sheetWidget,'value')
+                        with ui.tab_panel(graphTab).classes('w-full h-full border border-gray-400 rounded-lg'):
+                            chartCheck = ui.checkbox(text='Add Chart for this Table').classes('w-full')
+                            ui.select(label='Select Chart Type',options=['Bar Chart','Pie Chart','Line Chart'],value='Bar Chart').classes('w-full').bind_visibility_from(chartCheck,'value')
                 elif operation=='Image':
                     filePath = ui.input(label='Image Path').classes('w-full').props('outlined dense')
                     widgetMaster.inputs.append(filePath)

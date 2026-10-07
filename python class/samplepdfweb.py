@@ -19,7 +19,7 @@ def main(currentPdf):
                 ui.input(label=i,placeholder=f"Enter PDF's {i}").classes('w-full')
         propertiesDialog.open()
     ui.add_css('''body {background-image:url("/static/Original.webp");background-size: cover;background-position: center;;background-attachment: fixed;}''')
-    
+    # function that generates pdf
     def generatePDF():
         try:
             pdf = FPDF()
@@ -29,8 +29,8 @@ def main(currentPdf):
                 widgetType = currentWidget.type
                 currentInputs = currentWidget.inputs
                 try:
-                    if widgetType=='Text':pdf.set_x(pdf.l_margin);pdf.multi_cell(0,8,str(currentInputs[0].value))
-                    elif widgetType=='Link':pdf.set_x(pdf.l_margin);pdf.write(10,text=currentInputs[0].value,link=currentInputs[1].value)
+                    if widgetType=='Text':pdf.multi_cell(0,8,str(currentInputs[0].value))
+                    elif widgetType=='Link':pdf.write(10,text=currentInputs[0].value,link=currentInputs[1].value)
                     elif widgetType=='Table':
                         with pdf.table() as table:
                             row = table.row()
@@ -95,9 +95,9 @@ async def home(email):
     ui.add_css('''body {background-image:url("/static/foggy-forest-landscape-dark-silhouette-mysterious-atmosphere-generated-by-ai.avif");background-size: cover;background-position: center;background-attachment: fixed;}
                .my-fab .q-btn {width: 28px !important;height: 28px !important;min-width: 28px !important;min-height: 28px !important;display: flex !important;align-items: center !important;justify-content: center !important;}
                .my-fab .q-icon {font-size: 16px !important;}''')
-
+    # function to create a new pdf
     def addPdfs(id=0,name='',description=''):
-
+        # fucntion to delete a pdf from database
         async def deletePdf(widget):
             try:
                 async with poolConnection.acquire() as connection:
@@ -151,6 +151,7 @@ async def home(email):
 @ui.page('/Register')
 def register():
     ui.button('Back',on_click=lambda:ui.navigate.to('/'))
+    # function to push data into mysql database
     async def pushData():
         currentEmail = email.value
         currentPassword = password.value
