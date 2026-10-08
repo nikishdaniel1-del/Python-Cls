@@ -86,7 +86,6 @@ def main():
                             df = pd.read_excel(filePath.value,sheet_name=sheetWidget.value)
                             df.dropna(how='all').dropna(axis=1,how='all')
                             df.columns = df.iloc[0]
-                            df = df.iloc[1:].reset_index(drop=True)
                             widgetMaster.inputs = [df]
                             ui.notify('Data Loaded Successfully.',type='positive')
                         def readExcel(currentFilePath):
@@ -94,10 +93,15 @@ def main():
                                 sheets = pd.ExcelFile(currentFilePath).sheet_names
                                 sheetWidget.options,sheetWidget.value = sheets,sheets[0]
                             except Exception as error:ui.notify(f'Error Loading File {error}',type='negative')
+                        def readcsv(currentFilePath):
+                            try:
+                                df = pd.read_csv(currentFilePath)
+                            except Exception as error:ui.notify(f'Error Loading File {error}',type='negative')
                         def fileLoader():
                             currentFilePath = filePath.value
                             file,extension = path.splitext(currentFilePath)
                             if extension=='.xlsx':readExcel(currentFilePath)
+                            elif extension=='.csv':readcsv(currentFilePath)
                             else:ui.notify("This type of file can't be Uploaded.",type='warning')
                         with ui.tab_panel(tableTab).classes('w-full h-full border border-gray-400 rounded-lg'):
                             filePath = ui.input(label='Data File',placeholder='Enter the path of the data file').classes('w-full').props('outlined dense')
