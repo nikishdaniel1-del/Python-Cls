@@ -106,7 +106,8 @@ def main():
                         with ui.tab_panel(tableTab).classes('w-full h-full border border-gray-400 rounded-lg'):
                             filePath = ui.input(label='Data File',placeholder='Enter the path of the data file').classes('w-full').props('outlined dense')
                             ui.button(text='Upload File',icon='refresh',on_click=fileLoader)
-                            sheetWidget = ui.select(label='Select the Sheet',options=[]).classes('w-full')
+                            with ui.expansion() as excelExpansion:
+                                sheetWidget = ui.select(label='Select the Sheet',options=[]).classes('w-full')
                             ui.button('Load Data',on_click=fetchData).bind_enabled_from(sheetWidget,'value')
                         with ui.tab_panel(graphTab).classes('w-full h-full border border-gray-400 rounded-lg'):
                             chartCheck = ui.checkbox(text='Add Chart for this Table').classes('w-full')
