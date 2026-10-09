@@ -46,7 +46,7 @@ def main():
                     elif widgetType=='Image':
                         currentFilePath = currentInputs[0].value
                         if not path.exists(currentFilePath):ui.notify(f"File '{currentFilePath}' does not exist.", color='negative');return
-                        try:pdf.image(currentFilePath)
+                        try:pdf.image(currentFilePath,w=100)
                         except Exception as error:ui.notify(f"Error adding image '{currentFilePath}': {error}", color='negative');return
                     elif widgetType=='Line Break':pdf.ln(int(currentInputs[0].value))
                 except Exception as error:ui.notify(f"Error processing widget '{widgetType}': {error}", color='negative');return
@@ -100,15 +100,21 @@ def main():
                         def fileLoader():
                             currentFilePath = filePath.value
                             file,extension = path.splitext(currentFilePath)
-                            if extension=='.xlsx':readExcel(currentFilePath)
-                            elif extension=='.csv':readcsv(currentFilePath)
+                            if extension=='.xlsx':excelExpansion.enable();excelExpansion.value=True;readExcel(currentFilePath)
+                            elif extension=='.csv':csvExpansion.enable();csvExpansion.value=True;readcsv(currentFilePath)
                             else:ui.notify("This type of file can't be Uploaded.",type='warning')
                         with ui.tab_panel(tableTab).classes('w-full h-full border border-gray-400 rounded-lg'):
                             filePath = ui.input(label='Data File',placeholder='Enter the path of the data file').classes('w-full').props('outlined dense')
                             ui.button(text='Upload File',icon='refresh',on_click=fileLoader)
-                            with ui.expansion() as excelExpansion:
+                            excelExpansion = ui.expansion(text='Excel File').classes('w-full')
+                            excelExpansion.disable()
+                            with excelExpansion:
                                 sheetWidget = ui.select(label='Select the Sheet',options=[]).classes('w-full')
-                            ui.button('Load Data',on_click=fetchData).bind_enabled_from(sheetWidget,'value')
+                                ui.button('Load Data',on_click=fetchData).bind_enabled_from(sheetWidget,'value')
+                            csvExpansion = ui.expansion(text='CSV File').classes('w-full')
+                            csvExpansion.disable()
+                            with csvExpansion:
+                                ui.button('Load Data')
                         with ui.tab_panel(graphTab).classes('w-full h-full border border-gray-400 rounded-lg'):
                             chartCheck = ui.checkbox(text='Add Chart for this Table').classes('w-full')
                             ui.select(label='Select Chart Type',options=['Bar Chart','Pie Chart','Line Chart'],value='Bar Chart').classes('w-full').bind_visibility_from(chartCheck,'value')
