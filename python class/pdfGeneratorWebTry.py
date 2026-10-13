@@ -29,9 +29,12 @@ def main():
                 widgetType = currentWidget.type
                 currentInputs = currentWidget.inputs
                 try:
-                    if widgetType=='Text':
-                        pdf.set_font(family=currentInputs[1].value,size=int(currentInputs[2].value),style='B' if currentInputs[3].value=='Bold' else 'I' if currentInputs[3].value=='Italic' else '')
-                        pdf.write(10,str(currentInputs[0].value))
+                    if widgetType=='New Page':pdf.add_page()
+                    elif widgetType=='Text':
+                        text,font,fontSize,fontStyle,link,linkText = currentInputs
+                        pdf.set_font(family=font.value,size=int(fontSize.value),style='B' if fontStyle.value=='Bold' else 'I' if fontStyle.value=='Italic' else '')
+                        pdf.write(10,str(text.value))
+                        if link.value:pdf.add_link(name=linkText.value)
                     elif widgetType=='Link':pdf.write(10,text=currentInputs[0].value,link=currentInputs[1].value)
                     elif widgetType=='Table':
                         df = currentInputs[0]
@@ -57,23 +60,26 @@ def main():
     def add(operation):
         with widgetsSaved:
             with ui.card().classes('w-full hover-card').style('background-color: rgba(255,255,255,0.9); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);') as widgetMaster:
-                widgetMaster.inputs = []
+                widgetMaster.inputs = []    
                 with ui.row().classes('w-full items-center justify-between gap-2 flex-wrap'):
                     ui.icon('drag_indicator').classes('handle cursor-grab active:cursor-grabbing')
-                    ui.label(operation).classes('font-bold').style('font-family:"Ink Free";font-size:25px;font-weight:bold;')
+                    ui.label(operation).classes('font-bold').style('font-family:"Algerian";font-size:25px;font-weight:bold;')
                     ui.button('',icon='delete',color='red',on_click=lambda:widgetMaster.delete())
                 if operation=='Text':
                     with ui.tabs().classes('w-full') as textTabs:
                         textFieldTab = ui.tab('Text Field',label='Text Field').classes('w-full h-full border border-gray-400 rounded-lg')
-                        textFontTab = ui.tab('Text Font',label='Text Font').classes('w-full h-full border border-gray-400 rounded-lg')
+                        textPropertiesTab = ui.tab('Text Properties',label='Text Properties').classes('w-full h-full border border-gray-400 rounded-lg')
                     with ui.tab_panels(textTabs,value=textFieldTab).classes('w-full border border-gray-400 rounded-lg'):
                         with ui.tab_panel(textFieldTab).classes('w-full h-full border border-gray-400 rounded-lg'):
                             textWidget = ui.textarea(label=operation,placeholder='Enter text here').classes('w-full').props('outlined dense')
-                        with ui.tab_panel(textFontTab).classes('w-full h-full border border-gray-400 rounded-lg'):
+                        with ui.tab_panel(textPropertiesTab).classes('w-full h-full border border-gray-400 rounded-lg'):
+                            with ui.row().classes('w-full flex'):
+                                linkCheck = ui.checkbox(text='Link')
+                                linkText = ui.input(label='Enter the Link Text').bind_enabled_from(linkCheck,'value')
                             textFont = ui.select(label='Font',options=['Helvetica','Times','Courier'],value='Helvetica').classes('w-full').props('outlined dense')
                             fontSize = ui.input(label='Font Size',placeholder='Enter font size here',value='12').classes('w-full').props('outlined dense')
                             fontStyle = ui.select(label='Font Style',options=['Regular','Bold','Italic','Bold-Italic'],value='Regular').classes('w-full').props('outlined dense')
-                    widgetMaster.inputs += [textWidget,textFont,fontSize,fontStyle]
+                    widgetMaster.inputs += [textWidget,textFont,fontSize,fontStyle,linkCheck,linkText]
                 elif operation=='Link':
                     linkTextWidget = ui.input(label='Link Text',placeholder='Enter the Link Text').classes('w-full').props('outlined dense')
                     linkUrlWidget = ui.input(label='Link URL',placeholder='Enter link here').classes('w-full').props('outlined dense')
@@ -110,14 +116,17 @@ def main():
                         with ui.tab_panel(tableTab).classes('w-full h-full border border-gray-400 rounded-lg'):
                             filePath = ui.input(label='Data File',placeholder='Enter the path of the data file').classes('w-full').props('outlined dense')
                             ui.button(text='Upload File',icon='refresh',on_click=fileLoader)
-                            excelExpansion = ui.expansion(text='Excel File').classes('w-full').disable()
+                            excelExpansion = ui.expansion(text='Excel File').classes('w-full')
+                            excelExpansion.disable()
                             with excelExpansion:
                                 sheetWidget = ui.select(label='Select the Sheet',options=[]).classes('w-full')
                                 ui.button('Load Data',on_click=fetchData).bind_enabled_from(sheetWidget,'value')
-                            csvExpansion = ui.expansion(text='CSV File').classes('w-full').disable()
+                            csvExpansion = ui.expansion(text='CSV File').classes('w-full')
+                            csvExpansion.disable()
                             with csvExpansion:
                                 ui.button('Load Data')
-                            jsonExpansion = ui.expansion(text='JSON File').classes('w-full').disable()
+                            jsonExpansion = ui.expansion(text='JSON File').classes('w-full')
+                            jsonExpansion.disable()
                             with jsonExpansion:
                                 ui.button('Load Data')
                         with ui.tab_panel(graphTab).classes('w-full h-full border border-gray-400 rounded-lg'):
@@ -126,23 +135,23 @@ def main():
                 elif operation=='Image':
                     filePath = ui.input(label='Image Path').classes('w-full').props('outlined dense')
                     widgetMaster.inputs.append(filePath)
-                else:
+                elif operation=='Line Break':
                     inputWidget = ui.input(label=operation,placeholder=f'Enter {operation} here',value='5').classes('w-full').props('outlined dense')
                     widgetMaster.inputs.append(inputWidget)
                 widgetMaster.type = operation
 
-    pdfWidgets = ['Text','Table','Link','Image','Line Break']
+    pdfWidgets = ['New Page','Text','Table','Link','Image','Line Break']
     with ui.row().classes('w-full gap-1'):
         with ui.card().classes('w-full').style('background-color: rgba(255,255,255,0.9); backdrop-filter: blur(0.5px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
             with ui.row().classes('w-full items-center justify-between gap-2 flex-wrap'):
                 ui.button('Back',color='#00fff2',on_click=lambda:ui.navigate.to('/'),icon='arrow_back')
                 with ui.row().classes('w-1/2 flex-wrap'):
-                    ui.label('Widgets').classes('font-bold').props('dense').style('font-family:"Times New Roman";font-size:26px;font-weight:bold;')
+                    ui.label('Widgets').classes('font-bold').props('dense').style('font-family:"Algerian";font-size:26px;font-weight:bold;')
                     with ui.dropdown_button('Select Widget',auto_close=True).classes('w-3/4'):
                         for i in pdfWidgets:
                             ui.item(i,on_click=lambda widget=i: add(widget)).classes('w-full')
-                ui.button('Generate PDF',icon='picture_as_pdf',on_click=generatePDF)
-                ui.button('Properties',icon='settings',color='green',on_click=pdfProperties)
+                ui.button('Generate PDF',icon='picture_as_pdf',color='green',on_click=generatePDF)
+                ui.button('Properties',icon='settings',color='red',on_click=pdfProperties)
         with ui.grid(columns='30% 70%').classes('gap-1 w-full'):
             widgetsSaved = ui.card().classes('w-full h-screen overflow-auto').style('background-color: rgba(1,1,1,0.6); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);')
             widgetsSaved.make_sortable(handle='.handle')
