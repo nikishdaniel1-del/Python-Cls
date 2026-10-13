@@ -59,6 +59,7 @@ def main():
             with ui.card().classes('w-full hover-card').style('background-color: rgba(255,255,255,0.9); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);') as widgetMaster:
                 widgetMaster.inputs = []
                 with ui.row().classes('w-full items-center justify-between gap-2 flex-wrap'):
+                    ui.icon('drag_indicator').classes('handle cursor-grab active:cursor-grabbing')
                     ui.label(operation).classes('font-bold').style('font-family:"Ink Free";font-size:25px;font-weight:bold;')
                     ui.button('',icon='delete',color='red',on_click=lambda:widgetMaster.delete())
                 if operation=='Text':
@@ -125,6 +126,7 @@ def main():
                     inputWidget = ui.input(label=operation,placeholder=f'Enter {operation} here',value='5').classes('w-full').props('outlined dense')
                     widgetMaster.inputs.append(inputWidget)
                 widgetMaster.type = operation
+        widgetsSaved.make_sortable(handle='.handle')
 
     pdfWidgets = ['Text','Table','Link','Image','Line Break']
     with ui.row().classes('w-full gap-1'):
