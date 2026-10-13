@@ -59,6 +59,7 @@ def main():
             with ui.card().classes('w-full hover-card').style('background-color: rgba(255,255,255,0.9); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);') as widgetMaster:
                 widgetMaster.inputs = []
                 with ui.row().classes('w-full items-center justify-between gap-2 flex-wrap'):
+                    ui.icon('drag_indicator').classes('handle cursor-grab active:cursor-grabbing')
                     ui.label(operation).classes('font-bold').style('font-family:"Ink Free";font-size:25px;font-weight:bold;')
                     ui.button('',icon='delete',color='red',on_click=lambda:widgetMaster.delete())
                 if operation=='Text':
@@ -88,12 +89,14 @@ def main():
                             df.columns = df.iloc[0]
                             widgetMaster.inputs = [df]
                             ui.notify('Data Loaded Successfully.',type='positive')
+                        def readJson(currentFilePath):
+                            pd.read_json(currentFilePath)
                         def readExcel(currentFilePath):
                             try:
                                 sheets = pd.ExcelFile(currentFilePath).sheet_names
                                 sheetWidget.options,sheetWidget.value = sheets,sheets[0]
                             except Exception as error:ui.notify(f'Error Loading File {error}',type='negative')
-                        def readcsv(currentFilePath):
+                        def readCsv(currentFilePath):
                             try:
                                 df = pd.read_csv(currentFilePath)
                             except Exception as error:ui.notify(f'Error Loading File {error}',type='negative')
@@ -101,19 +104,21 @@ def main():
                             currentFilePath = filePath.value
                             file,extension = path.splitext(currentFilePath)
                             if extension=='.xlsx':excelExpansion.enable();excelExpansion.value=True;readExcel(currentFilePath)
-                            elif extension=='.csv':csvExpansion.enable();csvExpansion.value=True;readcsv(currentFilePath)
+                            elif extension=='.csv':csvExpansion.enable();csvExpansion.value=True;readCsv(currentFilePath)
+                            elif extension=='.json':readJson(currentFilePath)
                             else:ui.notify("This type of file can't be Uploaded.",type='warning')
                         with ui.tab_panel(tableTab).classes('w-full h-full border border-gray-400 rounded-lg'):
                             filePath = ui.input(label='Data File',placeholder='Enter the path of the data file').classes('w-full').props('outlined dense')
                             ui.button(text='Upload File',icon='refresh',on_click=fileLoader)
-                            excelExpansion = ui.expansion(text='Excel File').classes('w-full')
-                            excelExpansion.disable()
+                            excelExpansion = ui.expansion(text='Excel File').classes('w-full').disable()
                             with excelExpansion:
                                 sheetWidget = ui.select(label='Select the Sheet',options=[]).classes('w-full')
                                 ui.button('Load Data',on_click=fetchData).bind_enabled_from(sheetWidget,'value')
-                            csvExpansion = ui.expansion(text='CSV File').classes('w-full')
-                            csvExpansion.disable()
+                            csvExpansion = ui.expansion(text='CSV File').classes('w-full').disable()
                             with csvExpansion:
+                                ui.button('Load Data')
+                            jsonExpansion = ui.expansion(text='JSON File').classes('w-full').disable()
+                            with jsonExpansion:
                                 ui.button('Load Data')
                         with ui.tab_panel(graphTab).classes('w-full h-full border border-gray-400 rounded-lg'):
                             chartCheck = ui.checkbox(text='Add Chart for this Table').classes('w-full')
@@ -140,6 +145,7 @@ def main():
                 ui.button('Properties',icon='settings',color='green',on_click=pdfProperties)
         with ui.grid(columns='30% 70%').classes('gap-1 w-full'):
             widgetsSaved = ui.card().classes('w-full h-screen overflow-auto').style('background-color: rgba(1,1,1,0.6); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);')
+            widgetsSaved.make_sortable(handle='.handle')
             with ui.card().classes('w-full h-screen overflow-auto').style('background-color: rgba(1,1,1,0.6); backdrop-filter: blur(0.5px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
                 pdfViewer = ui.html('',sanitize=False).classes('w-full h-full')
 
