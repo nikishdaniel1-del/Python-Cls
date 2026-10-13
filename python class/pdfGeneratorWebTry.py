@@ -126,7 +126,6 @@ def main():
                     inputWidget = ui.input(label=operation,placeholder=f'Enter {operation} here',value='5').classes('w-full').props('outlined dense')
                     widgetMaster.inputs.append(inputWidget)
                 widgetMaster.type = operation
-        widgetsSaved.make_sortable(handle='.handle')
 
     pdfWidgets = ['Text','Table','Link','Image','Line Break']
     with ui.row().classes('w-full gap-1'):
@@ -142,6 +141,7 @@ def main():
                 ui.button('Properties',icon='settings',color='green',on_click=pdfProperties)
         with ui.grid(columns='30% 70%').classes('gap-1 w-full'):
             widgetsSaved = ui.card().classes('w-full h-screen overflow-auto').style('background-color: rgba(1,1,1,0.6); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);')
+            widgetsSaved.make_sortable(handle='.handle')
             with ui.card().classes('w-full h-screen overflow-auto').style('background-color: rgba(1,1,1,0.6); backdrop-filter: blur(0.5px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
                 pdfViewer = ui.html('',sanitize=False).classes('w-full h-full')
 
