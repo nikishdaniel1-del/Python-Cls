@@ -171,3 +171,12 @@ for x in stream:
     index += 1
 result += 2*(n-index)
 print(result)'''
+
+
+stream = [0,0,1]
+currentSum = 1
+while 1:
+    if currentSum == n:return True
+    elif currentSum>n:return False
+    previous = stream.pop(0)
+    currentSum += 
