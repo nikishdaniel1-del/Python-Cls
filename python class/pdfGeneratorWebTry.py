@@ -1,5 +1,5 @@
 from nicegui import ui,app
-from fpdf import FPDF
+from fpdf import FPDF,FPDF_VERSION
 from os import environ,path,mkdir
 from matplotlib.figure import Figure
 import time,pandas as pd
@@ -71,7 +71,7 @@ def main():
                         with ui.tab_panel(textFontTab).classes('w-full h-full border border-gray-400 rounded-lg'):
                             textFont = ui.select(label='Font',options=['Helvetica','Times','Courier'],value='Helvetica').classes('w-full').props('outlined dense')
                             fontSize = ui.input(label='Font Size',placeholder='Enter font size here',value='12').classes('w-full').props('outlined dense')
-                            fontStyle = ui.select(label='Font Style',options=['Regular','Bold','Italic'],value='Regular').classes('w-full').props('outlined dense')
+                            fontStyle = ui.select(label='Font Style',options=['Regular','Bold','Italic','Bold-Italic'],value='Regular').classes('w-full').props('outlined dense')
                     widgetMaster.inputs += [textWidget,textFont,fontSize,fontStyle]
                 elif operation=='Link':
                     linkTextWidget = ui.input(label='Link Text',placeholder='Enter the Link Text').classes('w-full').props('outlined dense')

@@ -19,7 +19,6 @@ with pdfCreator.table() as tab:
         currentRow.cell(i[0],style=fonts);currentRow.cell(str(i[1]),style=fonts)
 pdfCreator.cell(0,10,'Google',link='https:\\google.com')
 # pdfCreator.multi_cell(w=0,h=10,markdown=True,text='**bold** ~~strike~~')
-pdfCreator.set_lang('JAP')
 pdfCreator.set_creator('Daniel')
 pdfCreator.set_author('Nikish')
 pdfCreator.set_producer('FPDF')
