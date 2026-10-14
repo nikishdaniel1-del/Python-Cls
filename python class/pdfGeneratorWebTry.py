@@ -57,7 +57,7 @@ def main():
             pdfViewer.set_content(f'''<iframe src="/pdfs/{currentPdf}.pdf?v={time.time_ns()}" style="width: 100%; height: 100%; border: none;"></iframe>''')
         except Exception as error:ui.notify(f"Error generating PDF: {error}", color='negative');return
 
-    def add(operation):
+    def add(operation): 
         with widgetsSaved:
             with ui.card().classes('w-full hover-card').style('background-color: rgba(255,255,255,0.9); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);') as widgetMaster:
                 widgetMaster.inputs = []    
