@@ -2,7 +2,7 @@ from nicegui import ui,app
 from fpdf import FPDF,FPDF_VERSION
 from os import environ,path,mkdir
 from matplotlib.figure import Figure
-import time,pandas as pd,aiomysql
+import time,pandas as pd
 
 links = {}
 @ui.page('/')
