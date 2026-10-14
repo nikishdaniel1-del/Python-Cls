@@ -2,8 +2,9 @@ from nicegui import ui,app
 from fpdf import FPDF,FPDF_VERSION
 from os import environ,path,mkdir
 from matplotlib.figure import Figure
-import time,pandas as pd
+import time,pandas as pd,aiomysql
 
+links = {}
 @ui.page('/')
 def main():
     ui.add_css('''body {background-image:url("/Data/mylene2401-umbrella-4692572_1920.avif");background-size: cover;background-position:top center;}''')
@@ -31,10 +32,19 @@ def main():
                 try:
                     if widgetType=='New Page':pdf.add_page()
                     elif widgetType=='Text':
-                        text,font,fontSize,fontStyle,link,linkText = currentInputs
+                        text,font,fontSize,fontStyle,link,linkText,linkType = currentInputs
+                        currentText = str(text.value)
                         pdf.set_font(family=font.value,size=int(fontSize.value),style='B' if fontStyle.value=='Bold' else 'I' if fontStyle.value=='Italic' else '')
-                        pdf.write(10,str(text.value))
-                        if link.value:pdf.add_link(name=linkText.value)
+                        if link.value:
+                            linkTextValue = linkText.value
+                            if linkType.value=='Add':
+                                linkId = pdf.add_link()
+                                pdf.write(10,currentText,link=linkId)
+                                links[linkTextValue] = linkId
+                            else:
+                                pdf.set_link(links[linkTextValue])
+                                pdf.write(10,currentText)
+                        else:pdf.write(10,currentText)
                     elif widgetType=='Link':pdf.write(10,text=currentInputs[0].value,link=currentInputs[1].value)
                     elif widgetType=='Table':
                         df = currentInputs[0]
@@ -48,6 +58,7 @@ def main():
                                     row.cell(str(value))
                     elif widgetType=='Image':
                         currentFilePath = currentInputs[0].value
+                        pdf.set_link(links['Info'])
                         if not path.exists(currentFilePath):ui.notify(f"File '{currentFilePath}' does not exist.", color='negative');return
                         try:pdf.image(currentFilePath,w=100)
                         except Exception as error:ui.notify(f"Error adding image '{currentFilePath}': {error}", color='negative');return
@@ -60,26 +71,29 @@ def main():
     def add(operation): 
         with widgetsSaved:
             with ui.card().classes('w-full hover-card').style('background-color: rgba(255,255,255,0.9); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);') as widgetMaster:
-                widgetMaster.inputs = []    
+                widgetMaster.inputs = []
+                widgetMaster.links = []
                 with ui.row().classes('w-full items-center justify-between gap-2 flex-wrap'):
                     ui.icon('drag_indicator').classes('handle cursor-grab active:cursor-grabbing')
                     ui.label(operation).classes('font-bold').style('font-family:"Algerian";font-size:25px;font-weight:bold;')
+                    if operation not in ['New Page','Line Break']:ui.button('',icon='link')
                     ui.button('',icon='delete',color='red',on_click=lambda:widgetMaster.delete())
                 if operation=='Text':
                     with ui.tabs().classes('w-full') as textTabs:
                         textFieldTab = ui.tab('Text Field',label='Text Field').classes('w-full h-full border border-gray-400 rounded-lg')
                         textPropertiesTab = ui.tab('Text Properties',label='Text Properties').classes('w-full h-full border border-gray-400 rounded-lg')
                     with ui.tab_panels(textTabs,value=textFieldTab).classes('w-full border border-gray-400 rounded-lg'):
-                        with ui.tab_panel(textFieldTab).classes('w-full h-full border border-gray-400 rounded-lg'):
+                        with ui.tab_panel(textFieldTab).classes('w-full border border-gray-400 rounded-lg'):
                             textWidget = ui.textarea(label=operation,placeholder='Enter text here').classes('w-full').props('outlined dense')
-                        with ui.tab_panel(textPropertiesTab).classes('w-full h-full border border-gray-400 rounded-lg'):
+                        with ui.tab_panel(textPropertiesTab).classes('w-full border border-gray-400 rounded-lg'):
                             with ui.row().classes('w-full flex'):
                                 linkCheck = ui.checkbox(text='Link')
                                 linkText = ui.input(label='Enter the Link Text').bind_enabled_from(linkCheck,'value')
+                                linkType = ui.select(options=['Add','Set'],value='Add')
                             textFont = ui.select(label='Font',options=['Helvetica','Times','Courier'],value='Helvetica').classes('w-full').props('outlined dense')
                             fontSize = ui.input(label='Font Size',placeholder='Enter font size here',value='12').classes('w-full').props('outlined dense')
                             fontStyle = ui.select(label='Font Style',options=['Regular','Bold','Italic','Bold-Italic'],value='Regular').classes('w-full').props('outlined dense')
-                    widgetMaster.inputs += [textWidget,textFont,fontSize,fontStyle,linkCheck,linkText]
+                    widgetMaster.inputs += [textWidget,textFont,fontSize,fontStyle,linkCheck,linkText,linkType]
                 elif operation=='Link':
                     linkTextWidget = ui.input(label='Link Text',placeholder='Enter the Link Text').classes('w-full').props('outlined dense')
                     linkUrlWidget = ui.input(label='Link URL',placeholder='Enter link here').classes('w-full').props('outlined dense')
@@ -111,7 +125,7 @@ def main():
                             file,extension = path.splitext(currentFilePath)
                             if extension=='.xlsx':excelExpansion.enable();excelExpansion.value=True;readExcel(currentFilePath)
                             elif extension=='.csv':csvExpansion.enable();csvExpansion.value=True;readCsv(currentFilePath)
-                            elif extension=='.json':readJson(currentFilePath)
+                            elif extension=='.json':jsonExpansion.enable();jsonExpansion.value=True;readJson(currentFilePath)
                             else:ui.notify("This type of file can't be Uploaded.",type='warning')
                         with ui.tab_panel(tableTab).classes('w-full h-full border border-gray-400 rounded-lg'):
                             filePath = ui.input(label='Data File',placeholder='Enter the path of the data file').classes('w-full').props('outlined dense')
