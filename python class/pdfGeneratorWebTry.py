@@ -2,7 +2,12 @@ from nicegui import ui,app
 from fpdf import FPDF,FPDF_VERSION
 from os import environ,path,mkdir
 from matplotlib.figure import Figure
-import time,pandas as pd
+import time,pandas as pd,aiomysql
+
+poolConnection = None
+async def makeConnection():
+    global poolConnection
+    poolConnection = await aiomysql.create_pool(host='localhost',user='root',password='Nikish@2003',db='pdfUsers',autocommit=True)
 
 @ui.page('/')
 def main():
@@ -22,7 +27,7 @@ def main():
 
     async def generatePDF(currentPdf='output'):
         try:
-            pdf = FPDF()
+            pdf = FPDF(orientation='P',format='A4')
             pdf.add_page()
             pdf.set_font("Helvetica", size=12)
             for currentWidget in widgetsSaved:
@@ -158,6 +163,7 @@ def main():
             with ui.card().classes('w-full h-screen overflow-auto').style('background-color: rgba(1,1,1,0.6); backdrop-filter: blur(0.5px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
                 pdfViewer = ui.html('',sanitize=False).classes('w-full h-full')
 
+app.on_startup(makeConnection)
 appBasePath = path.join(environ['USERPROFILE'],'PDF Creator')
 if not path.exists(appBasePath):mkdir(appBasePath)
 pdfFolderPath = path.join(appBasePath,'pdfs')
