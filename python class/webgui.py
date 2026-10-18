@@ -1,20 +1,21 @@
-from fpdf import FPDF
+from nicegui import ui
+import asyncio
+import time
 
-pdf = FPDF()
-pdf.add_page()
+@ui.page('/')
+def main():
+    ui.label('Sync vs Async in NiceGUI').classes('text-2xl font-bold')
+    status = ui.label('Click a button to start')
+    def sync_task():
+        status.set_text('Sync task running...')
+        time.sleep(10)
+        status.set_text('Sync task completed!')
 
-pdf.set_font("Helvetica", size=14)
+    async def async_task():
+        status.set_text('Async task running...')
+        await asyncio.sleep(10)
+        status.set_text('Async task completed!')
+    ui.button('Run Sync Task', on_click=sync_task)
+    ui.button('Run Async Task', on_click=async_task)
 
-pdf.write(
-    10,
-    "Visit our website: "
-)
-
-pdf.set_text_color(0, 0, 255)
-pdf.write(
-    10,
-    "The Pentecostal Matrimony",
-    link="https://example.com"
-)
-
-pdf.output("output.pdf")
+ui.run()

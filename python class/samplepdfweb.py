@@ -10,15 +10,19 @@ async def makeConnection():
 
 @ui.page('/{currentPdf}/PDFEditor')
 def main(currentPdf):
+    ui.add_css('''body {background-image:url("/static/Original.webp");background-size: cover;background-position: center;;background-attachment: fixed;}''')
     def pdfProperties():
         with ui.dialog() as propertiesDialog,ui.card().classes('w-1/2 h-3/4'):
             with ui.row().classes('w-full items-center justify-between gap-2 flex-wrap'):
                 ui.label('PDF Properties').classes('font-bold').style('font-family:"Times New Roman";font-size:26px;font-weight:bold;')
                 ui.button('',icon='save',color='green')
-            for i in ['Author','Creator',"Creator's Password","User's Password"]:
-                ui.input(label=i,placeholder=f"Enter PDF's {i}").classes('w-full')
+            ui.select(label='Orientation',options=['Portrait','Landscape'],value='Portrait').classes('w-full')
+            encryptionCheck = ui.checkbox(text='Make PDF Encrypted').classes('w-full')
+            ui.input(label="Creator's Password",placeholder="Enter Creator's Password").classes('w-full').bind_visibility_from(encryptionCheck,'value')
+            ui.input(label="User's Password",placeholder="Enter User's Password").classes('w-full').bind_visibility_from(encryptionCheck,'value')
+            for i in ['Author','Creator','Producer']:
+                ui.input(label=i,placeholder=f"Enter PDF's {i}",value='').classes('w-full')
         propertiesDialog.open()
-    ui.add_css('''body {background-image:url("/static/Original.webp");background-size: cover;background-position: center;;background-attachment: fixed;}''')
     # function that generates pdf
     def generatePDF():
         try:
