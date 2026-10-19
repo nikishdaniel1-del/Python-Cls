@@ -2,11 +2,22 @@ from nicegui import ui,app
 from fpdf import FPDF
 from os import environ,path,mkdir
 from matplotlib.figure import Figure
-import time,pandas as pd,aiomysql
+import time,pandas as pd,aiomysql,json
+
+async def makeConnection():
+    global poolConnection
+    poolConnection = await aiomysql.create_pool(host='localhost',user='root',password='Nikish@2003',db='pdfUsers',autocommit=True)
 
 links = {}
+
 @ui.page('/')
 def main():
+    async def saveLink():
+        try:
+            async with poolConnection.acquire() as connection:
+                async with connection.cursor() as cursor:
+                    await cursor.execute('insert into pdfusers()')
+        except Exception as error:ui.notify(str(error),type='negative')
     ui.add_css('''body {background-image:url("/Data/mylene2401-umbrella-4692572_1920.avif");background-size: cover;background-position:top center;}''')
     def linkMenu(data=[False,'Add Link','']):
         def linkChecker(value):

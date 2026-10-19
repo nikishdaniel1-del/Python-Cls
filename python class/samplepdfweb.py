@@ -1,7 +1,7 @@
 from nicegui import ui,app,run
 from fpdf import FPDF
 from os import path,environ,mkdir
-import time,aiomysql,shutil
+import time,aiomysql,shutil,json
 
 poolConnection = None
 async def makeConnection():
@@ -108,24 +108,29 @@ async def home(email):
                     async with connection.cursor() as cursor:
                         await cursor.execute('delete from userspdf where email=%s and pdfName=%s',(email,pdfName.value,))
                         widget.delete()
+                        print(widget.fileName)
+                        # os.remove()
+                        # os.remove()
             except Exception as error:ui.notify(str(error),type='negative')
 
-        async def savePdfMysql(pdfNameValue,pdfDescriptionValue):
+        async def savePdfMysql(pdfNameValue,pdfDescriptionValue,jsonPath):
             try:
                 async with poolConnection.acquire() as connection:
                     async with connection.cursor() as cursor:
-                        await cursor.execute('insert into userspdf(pdfname,pdfdescription,email) values (%s,%s,%s)',(pdfNameValue,pdfDescriptionValue,email))
+                        await cursor.execute('insert into userspdf(pdfname,pdfdescription,email,widgets) values (%s,%s,%s,%s)',(pdfNameValue,pdfDescriptionValue,email,jsonPath))
                         await cursor.close()
-                        ui.notify('Saved Successfully',type='positive')                 
+                        ui.notify('Saved Successfully',type='positive')
             except Exception as error:ui.notify(str(error),type='negative')
 
-        async def savePdfs():
+        async def savePdfs(widget):
             pdfNameValue,pdfDescriptionValue = pdfName.value,pdfDescription.value
+            jsonPath = path.join(widgetFolder,pdfNameValue+'.json')
+            widget.fileName = jsonPath
             if pdfNameValue=='':pdfName.run_method('focus');pdfName.style('border:2px solid red');return
             else:pdfName.style('border:2px white')
             if pdfDescriptionValue=='':pdfDescription.run_method('focus');pdfDescription.style('border:2px solid red');return
             else:pdfDescription.style('border:2px white')
-            await savePdfMysql(pdfNameValue,pdfDescriptionValue)
+            await savePdfMysql(pdfNameValue,pdfDescriptionValue,jsonPath)
 
         with pdfsHolder:
             currentPDF = ui.card().classes('w-full h-full hover-card object-cover aspect-rectangle').style('border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);')
@@ -215,6 +220,8 @@ pdfFolder = path.join(appBasePath,'pdfs')
 if not path.exists(pdfFolder):mkdir(pdfFolder)
 fontFolder = path.join(appBasePath,'Fonts')
 if not path.exists(fontFolder):mkdir(fontFolder)
-app.add_static_files('/static','Data')
+widgetFolder = path.join(appBasePath,'widgets')
+if not path.exists(widgetFolder):mkdir(widgetFolder)
+app.add_static_files('/static','Data1')
 app.add_static_files('/pdfs',pdfFolder)
 ui.run(port=8085,)
