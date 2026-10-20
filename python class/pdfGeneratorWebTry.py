@@ -8,7 +8,7 @@ async def makeConnection():
     global poolConnection
     poolConnection = await aiomysql.create_pool(host='localhost',user='root',password='Nikish@2003',db='pdfUsers',autocommit=True)
 
-links = {}
+currentPdfWidgets = {}
 
 @ui.page('/')
 def main():

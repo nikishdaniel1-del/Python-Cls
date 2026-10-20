@@ -99,61 +99,62 @@ async def home(email):
     ui.add_css('''body {background-image:url("/static/foggy-forest-landscape-dark-silhouette-mysterious-atmosphere-generated-by-ai.avif");background-size: cover;background-position: center;background-attachment: fixed;}
                .my-fab .q-btn {width: 28px !important;height: 28px !important;min-width: 28px !important;min-height: 28px !important;display: flex !important;align-items: center !important;justify-content: center !important;}
                .my-fab .q-icon {font-size: 16px !important;}''')
-    # function to create a new pdf
-    def addPdfs(id=0,name='',description=''):
+    async def addToWidget(currentPdfName,widgetPath):
         # fucntion to delete a pdf from database
         async def deletePdf(widget):
             try:
                 async with poolConnection.acquire() as connection:
                     async with connection.cursor() as cursor:
-                        await cursor.execute('delete from userspdf where email=%s and pdfName=%s',(email,pdfName.value,))
+                        await cursor.execute('delete from userspdf where email=%s and pdfName=%s',(email,currentPdfName,))
+                        print(widgetPath)
                         widget.delete()
-                        print(widget.fileName)
-                        # os.remove()
-                        # os.remove()
+                        # os.remove();os.remove()
             except Exception as error:ui.notify(str(error),type='negative')
 
-        async def savePdfMysql(pdfNameValue,pdfDescriptionValue,jsonPath):
+        with pdfsHolder:
+            with ui.card().classes('w-full hover-card') as widget:
+                ui.label(currentPdfName).classes('font-bold').style('font-family:"Arial Black";font-size:25px;font-weight:bold;')
+                with ui.row().classes('w-full items-center justify-between gap-2 flex-wrap'):
+                    ui.button('Delete',icon='delete',color='red',on_click=lambda:deletePdf(widget)).classes('flex-1')
+                    ui.button('Editor',color='green',icon='picture_as_pdf',on_click=lambda:ui.navigate.to(f'/{currentPdfName}/PDFEditor')).classes('flex-1')
+
+    # function to create a new pdf
+    async def addPdfs():
+        async def savePdfMysql(pdfNameValue,jsonPath):
+            pdfSaveDialog.close()
             try:
                 async with poolConnection.acquire() as connection:
                     async with connection.cursor() as cursor:
-                        await cursor.execute('insert into userspdf(pdfname,pdfdescription,email,widgets) values (%s,%s,%s,%s)',(pdfNameValue,pdfDescriptionValue,email,jsonPath))
-                        await cursor.close()
-                        ui.notify('Saved Successfully',type='positive')
+                        await cursor.execute('insert into userspdf(pdfname,email,widgets) values (%s,%s,%s)',(pdfNameValue,email,jsonPath))
+                        await cursor.close();await addToWidget(pdfNameValue,jsonPath)
+                ui.notify('Saved Successfully',type='positive')
             except Exception as error:ui.notify(str(error),type='negative')
 
-        async def savePdfs(widget):
-            pdfNameValue,pdfDescriptionValue = pdfName.value,pdfDescription.value
+        async def savePdfs():
+            pdfNameValue = pdfName.value
             jsonPath = path.join(widgetFolder,pdfNameValue+'.json')
-            widget.fileName = jsonPath
+            currentPdfWidgets = {'Name':pdfNameValue,'Author':'','Creator':'','Producer':'','Orientation':'Portrait','Encrypted':False,'CreatorPassword':'','UserPassword':'','Widgets':[]}
+            with open(jsonPath,'w') as jsonFile:json.dump(currentPdfWidgets,jsonFile)
             if pdfNameValue=='':pdfName.run_method('focus');pdfName.style('border:2px solid red');return
             else:pdfName.style('border:2px white')
-            if pdfDescriptionValue=='':pdfDescription.run_method('focus');pdfDescription.style('border:2px solid red');return
-            else:pdfDescription.style('border:2px white')
-            await savePdfMysql(pdfNameValue,pdfDescriptionValue,jsonPath)
+            await savePdfMysql(pdfNameValue,jsonPath)
 
-        with pdfsHolder:
-            currentPDF = ui.card().classes('w-full h-full hover-card object-cover aspect-rectangle').style('border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);')
-            with currentPDF:
-                with ui.row().classes('w-full'):
-                    pdfName = ui.input('PDF Name',placeholder="Enter PDF's Name",value=name,validation={'PDF Already Exists':lambda x:x not in ['sample','sample2']}).classes('w-4/7').props('rounded outlined dense')
-                    with ui.button('',icon='delete',color='red',on_click=lambda:deletePdf(currentPDF)).classes('w-1/6 h-1/6'):ui.tooltip('Delete')
-                    saveButton = ui.button(text='',icon='save',color='green',on_click=savePdfs).classes('w-1/6 h-1/6')
-                    if id:saveButton.pdfId = id
-                    with saveButton:ui.tooltip('Save')
-                with ui.row().classes('w-full'):
-                    pdfDescription = ui.input('PDF Description',placeholder="Enter PDF's Description",value=description).classes('w-4/7').props('rounded outlined dense')
-                    ui.button('Editor',icon='picture_as_pdf',on_click=lambda:ui.navigate.to(f'/{pdfName.value}/PDFEditor')).classes('w-1/3')
+        with ui.dialog() as pdfSaveDialog,ui.card().classes('w-1/2'):
+            pdfName = ui.input(label='PDF Name',placeholder='Enter the PDF Name').classes('w-full')
+            ui.button('Save',on_click=savePdfs,color='green').classes('w-full')
+        pdfSaveDialog.open()
 
     ui.button('New PDF',icon='add',on_click=addPdfs)
     with ui.card().classes('p-4 w-full h-screen overflow-auto').style('background-color: rgba(1, 1, 1, 0.3); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
         pdfsHolder = ui.grid(columns=3).classes('w-full gap-2 items-start')
+        data = []
         try:
             async with poolConnection.acquire() as connection:
                 async with connection.cursor() as cursor:
-                    await cursor.execute('select id,pdfname,pdfdescription from userspdf where email=%s',(email,))
+                    await cursor.execute('select pdfname,widgets from userspdf where email=%s',(email,))
                     data = await cursor.fetchall()
-                    for i in data:addPdfs(*i)
+                    for i in data:await addToWidget(*i)
+                    await cursor.close()
         except Exception as error:ui.notify(str(error),type='negative')
     ui.pagination(min=1,max=len(data)//9+1).classes('w-full item-center justify-center').props(f'v-model="current" :max="{len(data)//9+1}" direction-links boundary-links icon-first="skip_previous" icon-last="skip_next" icon-prev="fast_rewind" icon-next="fast_forward" color="grey" active-color="black"')
 
@@ -212,7 +213,7 @@ def home():
         ui.link('Forgot Password?')
 
 ui.add_css('''.hover-card {transition: all 0.3s ease;}
-           .hover-card:hover {transform: scale(1.03);box-shadow: 0 10px 25px rgba(0,0,0,0.2);}''',shared=True)
+           .hover-card:hover {transform: scale(1.02);box-shadow: 0 10px 25px rgba(0,0,0,0.2);}''',shared=True)
 app.on_startup(makeConnection)
 appBasePath = path.join(environ['USERPROFILE'],'PDF Creator')
 if not path.exists(appBasePath):mkdir(appBasePath)
