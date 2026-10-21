@@ -120,6 +120,7 @@ async def home(email):
 
     # function to create a new pdf
     async def addPdfs():
+        # function to save the pdf into mysql database
         async def savePdfMysql(pdfNameValue,jsonPath):
             pdfSaveDialog.close()
             try:
