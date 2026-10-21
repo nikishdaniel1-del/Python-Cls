@@ -1,16 +1,18 @@
 from nicegui import ui,app,run
 from fpdf import FPDF
-from os import path,environ,mkdir
-import time,aiomysql,shutil,json
+from os import path,environ,mkdir,remove
+import time,aiomysql,shutil,json,pandas as pd
 
 poolConnection = None
 async def makeConnection():
     global poolConnection
     poolConnection = await aiomysql.create_pool(host='localhost',user='root',password='Nikish@2003',db='pdfUsers',autocommit=True)
 
-@ui.page('/{currentPdf}/PDFEditor')
-def main(currentPdf):
-    ui.add_css('''body {background-image:url("/static/Original.webp");background-size: cover;background-position: center;;background-attachment: fixed;}''')
+links = {}
+@ui.page('/{email}/{currentPdf}/PDFEditor')
+async def main(email,currentPdf):
+    ui.add_css('''body {background-image:url("/static/Original.webp");background-size: cover;background-position: center;background-attachment: fixed;}''')
+    # function that modifies the PDF's Properties
     def pdfProperties():
         with ui.dialog() as propertiesDialog,ui.card().classes('w-1/2 h-3/4'):
             with ui.row().classes('w-full items-center justify-between gap-2 flex-wrap'):
@@ -20,85 +22,179 @@ def main(currentPdf):
             encryptionCheck = ui.checkbox(text='Make PDF Encrypted').classes('w-full')
             ui.input(label="Creator's Password",placeholder="Enter Creator's Password").classes('w-full').bind_visibility_from(encryptionCheck,'value')
             ui.input(label="User's Password",placeholder="Enter User's Password").classes('w-full').bind_visibility_from(encryptionCheck,'value')
-            for i in ['Author','Creator','Producer']:
+            for i in ['Subject','Author','Creator','Producer']:
                 ui.input(label=i,placeholder=f"Enter PDF's {i}",value='').classes('w-full')
         propertiesDialog.open()
+
     # function that generates pdf
-    def generatePDF():
+    async def generatePDF(currentPdf='output'):
         try:
-            pdf = FPDF()
+            pdf = FPDF(orientation='P',format='A4')
             pdf.add_page()
-            pdf.set_font("Arial",size=12)
+            pdf.set_font("Helvetica", size=12)
             for currentWidget in widgetsSaved:
                 widgetType = currentWidget.type
                 currentInputs = currentWidget.inputs
+                link,linkText,linkType = currentWidget.links
                 try:
-                    if widgetType=='Text':pdf.multi_cell(0,8,str(currentInputs[0].value))
+                    if widgetType=='New Page':pdf.add_page()
+                    elif widgetType=='Text':
+                        text,font,fontSize,fontStyle = currentInputs
+                        currentText = str(text.value)
+                        pdf.set_font(family=font.value,size=int(fontSize.value),style='B' if fontStyle.value=='Bold' else 'I' if fontStyle.value=='Italic' else '')
+                        if link:
+                            if linkType=='Add Link':
+                                linkId = pdf.add_link()
+                                pdf.write(10,currentText,link=linkId)
+                                links[linkText] = linkId
+                            else:
+                                pdf.set_link(links[linkText])
+                                pdf.write(10,currentText)
+                        else:pdf.write(10,currentText)
                     elif widgetType=='Link':pdf.write(10,text=currentInputs[0].value,link=currentInputs[1].value)
                     elif widgetType=='Table':
-                        with pdf.table() as table:
-                            row = table.row()
-                            for header in currentInputs[0].value.split(','):row.cell(header)
-                            for data in currentInputs[1].value.split(';'):
-                                row = table.row()
-                                for currentData in data.split(','):row.cell(currentData)
+                        df = currentInputs[0]
+                        with pdf.table() as dataTable:
+                            row = dataTable.row()
+                            for column in df.columns:
+                                row.cell(str(column))
+                            for _, data in df.iterrows():
+                                row = dataTable.row()
+                                for value in data:
+                                    row.cell(str(value))
+                    elif widgetType=='Image':
+                        currentFilePath = currentInputs[0].value
+                        pdf.set_link(links['Info'])
+                        if not path.exists(currentFilePath):ui.notify(f"File '{currentFilePath}' does not exist.", color='negative');return
+                        try:pdf.image(currentFilePath,w=100)
+                        except Exception as error:ui.notify(f"Error adding image '{currentFilePath}': {error}", color='negative');return
                     elif widgetType=='Line Break':pdf.ln(int(currentInputs[0].value))
                 except Exception as error:ui.notify(f"Error processing widget '{widgetType}': {error}", color='negative');return
-            pdf.output(pdfPath)
+            pdf.output(path.join(pdfFolderPath,f"{currentPdf}.pdf"))
             pdfViewer.set_content(f'''<iframe src="/pdfs/{currentPdf}.pdf?v={time.time_ns()}" style="width: 100%; height: 100%; border: none;"></iframe>''')
         except Exception as error:ui.notify(f"Error generating PDF: {error}", color='negative');return
 
+    # function to add PDF Operations
     def add(operation):
-        with widgetsSaved:
-            with ui.card().classes('w-full hover-card').style('background-color: rgba(255,255,255,0.9); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);') as widgetMaster:
-                widgetMaster.inputs = []
-                with ui.row().classes('w-full items-center justify-between gap-2 flex-wrap'):
-                    ui.label(operation).classes('font-bold').style('font-family:"Ink Free";font-size:25px;font-weight:bold;')
-                    ui.button('',icon='delete',color='red',on_click=lambda:widgetMaster.delete())
-                if operation=='Text':
-                    textWidget = ui.textarea(label=operation,placeholder='Enter text here').classes('w-full').props('outlined dense')
-                    widgetMaster.inputs.append(textWidget)
-                elif operation=='Link':
-                    linkTextWidget = ui.input(label='Link Text',placeholder='Enter the Link Text').classes('w-full').props('outlined dense')
-                    linkUrlWidget = ui.input(label='Link URL',placeholder='Enter link here').classes('w-full').props('outlined dense')
-                    widgetMaster.inputs.append(linkTextWidget);widgetMaster.inputs.append(linkUrlWidget)
-                elif operation=='Table':
-                    tableHeaderWidget = ui.input(label='Table Header',placeholder='Enter table header here').classes('w-full').props('outlined dense')
-                    tableDataWidget = ui.textarea(label='Table Data',placeholder='Enter table data here').classes('w-full').props('outlined dense')
-                    widgetMaster.inputs.append(tableHeaderWidget);widgetMaster.inputs.append(tableDataWidget)
-                else:
-                    inputWidget = ui.input(label=operation,placeholder=f'Enter {operation} here',value='0').classes('w-full').props('outlined dense')
-                    widgetMaster.inputs.append(inputWidget)
-                widgetMaster.type = operation
+        def removeLinkName(linkText,value):
+            if not value:linkText.value = ''
 
-    pdfWidgets = ['Text','Table','Link','Image','Line Break']
+        def saveLinks(link,linkText,linkType):
+            widgetMaster.links = [link,linkText,linkType]
+
+        def linkMenu():
+            with ui.dialog() as linkDialog,ui.card().classes('w-1/2'):
+                link = ui.checkbox('Make it as a Link')
+                linkText = ui.input(label='Link Text',placeholder='Enter the Link Text').classes('w-full').bind_enabled_from(link,'value')
+                link.on_value_change(lambda x:removeLinkName(linkText,x.value))
+                linkType = ui.select(options=['Add Link','Set Link'],value='Add Link',label='Link Type').classes('w-full').bind_enabled_from(link,'value')
+                ui.button(text='Save',icon='save',color='green',on_click=lambda:saveLinks(link.value,linkText.value,linkType.value)).classes('w-full')
+            linkDialog.open()
+
+        with widgetsSaved:
+            with ui.card().classes('w-full items-center gap-1 hover-card').style('background-color: rgba(255,255,255,0.9); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);') as widgetMaster:
+                widgetMaster.inputs = []
+                widgetMaster.links = ['','','']
+                with ui.row().classes('w-full items-center justify-between gap-2 flex-wrap'):
+                    ui.icon('drag_indicator').classes('handle cursor-grab active:cursor-grabbing')
+                    ui.label(operation).classes('font-bold').style('font-family:"Algerian";font-size:25px;font-weight:bold;')
+                    ui.button('',icon='delete',color='red',on_click=lambda:widgetMaster.delete())
+                    if operation not in ['New Page','Line Break']:ui.button('',icon='link',on_click=linkMenu)
+                with ui.expansion('Properties',icon='settings').classes('w-full'):
+                    if operation=='Text':
+                        with ui.tabs().classes('w-full') as textTabs:
+                            textFieldTab = ui.tab('Text Field',label='Text Field').classes('w-full h-full border border-gray-400 rounded-lg')
+                            textPropertiesTab = ui.tab('Text Properties',label='Text Properties').classes('w-full h-full border border-gray-400 rounded-lg')
+                        with ui.tab_panels(textTabs,value=textFieldTab).classes('w-full border border-gray-400 rounded-lg'):
+                            with ui.tab_panel(textFieldTab).classes('w-full border border-gray-400 rounded-lg'):
+                                textWidget = ui.textarea(label=operation,placeholder='Enter text here').classes('w-full').props('outlined dense')
+                            with ui.tab_panel(textPropertiesTab).classes('w-full border border-gray-400 rounded-lg'):
+                                textFont = ui.select(label='Font',options=['Helvetica','Times','Courier'],value='Helvetica').classes('w-full').props('outlined dense')
+                                fontSize = ui.input(label='Font Size',placeholder='Enter font size here',value='12').classes('w-full').props('outlined dense')
+                                fontStyle = ui.select(label='Font Style',options=['Regular','Bold','Italic','Bold-Italic'],value='Regular').classes('w-full').props('outlined dense')
+                        widgetMaster.inputs += [textWidget,textFont,fontSize,fontStyle]
+                    elif operation=='Link':
+                        linkTextWidget = ui.input(label='Link Text',placeholder='Enter the Link Text').classes('w-full').props('outlined dense')
+                        linkUrlWidget = ui.input(label='Link URL',placeholder='Enter link here').classes('w-full').props('outlined dense')
+                        widgetMaster.inputs.append(linkTextWidget);widgetMaster.inputs.append(linkUrlWidget)
+                    elif operation=='Table':
+                        with ui.tabs().classes('w-full') as tableTabs:
+                            tableTab = ui.tab('Table Tab',label='Table Tab').classes('w-full h-full border border-gray-400 rounded-lg')
+                            graphTab = ui.tab('Graph Tab',label='Graph Tab').classes('w-full h-full border border-gray-400 rounded-lg')
+                        with ui.tab_panels(tableTabs,value=tableTab).classes('w-full border border-gray-400 rounded-lg'):
+                            def fetchData():
+                                df = pd.read_excel(filePath.value,sheet_name=sheetWidget.value)
+                                df.dropna(how='all').dropna(axis=1,how='all')
+                                df.columns = df.iloc[0]
+                                widgetMaster.inputs = [df]
+                                ui.notify('Data Loaded Successfully.',type='positive')
+                            def readJson(currentFilePath):
+                                pd.read_json(currentFilePath)
+                            def readExcel(currentFilePath):
+                                try:
+                                    sheets = pd.ExcelFile(currentFilePath).sheet_names
+                                    sheetWidget.options,sheetWidget.value = sheets,sheets[0]
+                                except Exception as error:ui.notify(f'Error Loading File {error}',type='negative')
+                            def readCsv(currentFilePath):
+                                try:
+                                    df = pd.read_csv(currentFilePath)
+                                except Exception as error:ui.notify(f'Error Loading File {error}',type='negative')
+                            def fileLoader():
+                                currentFilePath = filePath.value
+                                file,extension = path.splitext(currentFilePath)
+                                if extension=='.xlsx':excelExpansion.enable();excelExpansion.value=True;readExcel(currentFilePath)
+                                elif extension=='.csv':csvExpansion.enable();csvExpansion.value=True;readCsv(currentFilePath)
+                                elif extension=='.json':jsonExpansion.enable();jsonExpansion.value=True;readJson(currentFilePath)
+                                else:ui.notify("This type of file can't be Uploaded.",type='warning')
+                            with ui.tab_panel(tableTab).classes('w-full h-full border border-gray-400 rounded-lg'):
+                                filePath = ui.input(label='Data File',placeholder='Enter the path of the data file').classes('w-full').props('outlined dense')
+                                ui.button(text='Upload File',icon='refresh',on_click=fileLoader)
+                                excelExpansion = ui.expansion(text='Excel File').classes('w-full')
+                                excelExpansion.disable()
+                                with excelExpansion:
+                                    sheetWidget = ui.select(label='Select the Sheet',options=[]).classes('w-full')
+                                    ui.button('Load Data',on_click=fetchData).bind_enabled_from(sheetWidget,'value')
+                                csvExpansion = ui.expansion(text='CSV File').classes('w-full')
+                                csvExpansion.disable()
+                                with csvExpansion:
+                                    ui.button('Load Data')
+                                jsonExpansion = ui.expansion(text='JSON File').classes('w-full')
+                                jsonExpansion.disable()
+                                with jsonExpansion:
+                                    ui.button('Load Data')
+                            with ui.tab_panel(graphTab).classes('w-full h-full border border-gray-400 rounded-lg'):
+                                chartCheck = ui.checkbox(text='Add Chart for this Table').classes('w-full')
+                                ui.select(label='Select Chart Type',options=['Bar Chart','Pie Chart','Line Chart'],value='Bar Chart').classes('w-full').bind_visibility_from(chartCheck,'value')
+                    elif operation=='Image':
+                        filePath = ui.input(label='Image Path').classes('w-full').props('outlined dense')
+                        widgetMaster.inputs.append(filePath)
+                    elif operation=='Line Break':
+                        inputWidget = ui.input(label=operation,placeholder=f'Enter {operation} here',value='5').classes('w-full').props('outlined dense')
+                        widgetMaster.inputs.append(inputWidget)
+                    widgetMaster.type = operation
+
+    pdfWidgets = ['New Page','Text','Table','Link','Image','Line Break']
     with ui.row().classes('w-full gap-1'):
         with ui.card().classes('w-full').style('background-color: rgba(255,255,255,0.9); backdrop-filter: blur(0.5px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
             with ui.row().classes('w-full items-center justify-between gap-2 flex-wrap'):
-                ui.button('Back',color='#00fff2',on_click=lambda:ui.navigate.to('/'),icon='arrow_back').classes('w-1/5')
-                with ui.row().classes('w-1/2 items-center justify-center gap-2 flex-wrap'):
-                    ui.label('Widgets').classes('text-2xl md:text-4xl font-bold').style('font-family:"Times New Roman";font-size:26px;font-weight:bold;')
-                    with ui.dropdown_button('Select Widget',auto_close=True):
-                        # loads the pdf widgets into dropdown widget
+                ui.button('Back',color='#00fff2',on_click=lambda:ui.navigate.to(f'/{email}/MyPDFs'),icon='arrow_back')
+                with ui.row().classes('w-1/2 flex-wrap'):
+                    ui.label('Widgets').classes('font-bold').props('dense').style('font-family:"Algerian";font-size:26px;font-weight:bold;')
+                    with ui.dropdown_button('Select Widget',auto_close=True).classes('w-3/4'):
                         for i in pdfWidgets:
                             ui.item(i,on_click=lambda widget=i: add(widget)).classes('w-full')
-                ui.button('Generate',icon='picture_as_pdf',on_click=generatePDF).classes('w-1/5')
-                ui.button('',color='green',icon='settings',on_click=pdfProperties).classes('w-1/18')
+                ui.button('Generate PDF',icon='picture_as_pdf',color='green',on_click=generatePDF)
+                ui.button('Properties',icon='settings',color='red',on_click=pdfProperties)
         with ui.grid(columns='30% 70%').classes('gap-1 w-full'):
-            # container for pdf widgets of the current pdf project
             widgetsSaved = ui.card().classes('w-full h-screen overflow-auto').style('background-color: rgba(1,1,1,0.6); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);')
+            widgetsSaved.make_sortable(handle='.handle')
             with ui.card().classes('w-full h-screen overflow-auto').style('background-color: rgba(1,1,1,0.6); backdrop-filter: blur(0.5px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
-                if not path.exists(pdfFolder):mkdir(pdfFolder)
-                pdfPath = path.join(pdfFolder,f'{currentPdf}.pdf')
                 pdfViewer = ui.html('',sanitize=False).classes('w-full h-full')
-                if path.exists(pdfPath):pdfViewer.set_content(f'''<iframe src="/pdfs/{currentPdf}.pdf?v={time.time_ns()}" style="width: 100%; height: 100%; border: none;"></iframe>''')
-                else:pdfViewer.set_content(f'''<div class="w-full h-full flex items-center justify-center text-white text-2xl">No PDF Found</div>''')
 
 @ui.page('/{email}/MyPDFs')
 async def home(email):
-    ui.add_css('''body {background-image:url("/static/foggy-forest-landscape-dark-silhouette-mysterious-atmosphere-generated-by-ai.avif");background-size: cover;background-position: center;background-attachment: fixed;}
-               .my-fab .q-btn {width: 28px !important;height: 28px !important;min-width: 28px !important;min-height: 28px !important;display: flex !important;align-items: center !important;justify-content: center !important;}
-               .my-fab .q-icon {font-size: 16px !important;}''')
+    ui.add_css('''body {background-image:url("/static/foggy-forest-landscape-dark-silhouette-mysterious-atmosphere-generated-by-ai.avif");background-size: cover;background-position: center;background-attachment: fixed;}''')
+    # function to add widgets to PDF Holder
     async def addToWidget(currentPdfName,widgetPath):
         # fucntion to delete a pdf from database
         async def deletePdf(widget):
@@ -106,9 +202,7 @@ async def home(email):
                 async with poolConnection.acquire() as connection:
                     async with connection.cursor() as cursor:
                         await cursor.execute('delete from userspdf where email=%s and pdfName=%s',(email,currentPdfName,))
-                        print(widgetPath)
-                        widget.delete()
-                        # os.remove();os.remove()
+                        widget.delete();remove(widgetPath)
             except Exception as error:ui.notify(str(error),type='negative')
 
         with pdfsHolder:
@@ -116,11 +210,11 @@ async def home(email):
                 ui.label(currentPdfName).classes('font-bold').style('font-family:"Arial Black";font-size:25px;font-weight:bold;')
                 with ui.row().classes('w-full items-center justify-between gap-2 flex-wrap'):
                     ui.button('Delete',icon='delete',color='red',on_click=lambda:deletePdf(widget)).classes('flex-1')
-                    ui.button('Editor',color='green',icon='picture_as_pdf',on_click=lambda:ui.navigate.to(f'/{currentPdfName}/PDFEditor')).classes('flex-1')
+                    ui.button('Editor',icon='picture_as_pdf',on_click=lambda:ui.navigate.to(f'/{email}/{currentPdfName}/PDFEditor')).classes('flex-1')
 
     # function to create a new pdf
     async def addPdfs():
-        # function to save the pdf into mysql database
+        # function to save in MySQL
         async def savePdfMysql(pdfNameValue,jsonPath):
             pdfSaveDialog.close()
             try:
@@ -131,21 +225,22 @@ async def home(email):
                 ui.notify('Saved Successfully',type='positive')
             except Exception as error:ui.notify(str(error),type='negative')
 
+        # function to validate the inputs and closes the dialog
         async def savePdfs():
             pdfNameValue = pdfName.value
+            if pdfNameValue=='':pdfName.run_method('focus');pdfName.style('border:2px solid red');return
+            else:pdfName.style('border:2px white')
             jsonPath = path.join(widgetFolder,pdfNameValue+'.json')
             currentPdfWidgets = {'Name':pdfNameValue,'Author':'','Creator':'','Producer':'','Orientation':'Portrait','Encrypted':False,'CreatorPassword':'','UserPassword':'','Widgets':[]}
             with open(jsonPath,'w') as jsonFile:json.dump(currentPdfWidgets,jsonFile)
-            if pdfNameValue=='':pdfName.run_method('focus');pdfName.style('border:2px solid red');return
-            else:pdfName.style('border:2px white')
             await savePdfMysql(pdfNameValue,jsonPath)
 
         with ui.dialog() as pdfSaveDialog,ui.card().classes('w-1/2'):
             pdfName = ui.input(label='PDF Name',placeholder='Enter the PDF Name').classes('w-full')
-            ui.button('Save',on_click=savePdfs,color='green').classes('w-full')
+            ui.button('Save',icon='save',on_click=savePdfs,color='green').classes('w-full')
         pdfSaveDialog.open()
 
-    ui.button('New PDF',icon='add',on_click=addPdfs)
+    ui.button('New PDF',icon='add',color='green',on_click=addPdfs)
     with ui.card().classes('p-4 w-full h-screen overflow-auto').style('background-color: rgba(1, 1, 1, 0.3); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
         pdfsHolder = ui.grid(columns=3).classes('w-full gap-2 items-start')
         data = []
@@ -161,7 +256,7 @@ async def home(email):
 
 @ui.page('/Register')
 def register():
-    ui.button('Back',on_click=lambda:ui.navigate.to('/'))
+    ui.button('Back',color='red',on_click=lambda:ui.navigate.to('/'))
     # function to push data into mysql database
     async def pushData():
         currentEmail = email.value
@@ -184,8 +279,7 @@ def register():
 @ui.page('/')
 def home():
     async def checkLogin():
-        currentEmail = email.value
-        currentPassword = password.value
+        currentEmail,currentPassword = email.value,password.value
         if currentEmail=='' or currentPassword=='':ui.notify('Please fill in all fields',type='warning');return
         try:
             async with poolConnection.acquire() as connection:
@@ -211,19 +305,18 @@ def home():
         with ui.row().classes('w-full flex-wrap gap-2 justify-center'):
             ui.button('Register',icon='person_add',on_click=lambda:ui.navigate.to('/Register')).classes('w-1/4 flex-1')
             ui.button('Login',icon='login',on_click=checkLogin,color="white").classes('w-1/4 flex-1')
-        ui.link('Forgot Password?')
 
 ui.add_css('''.hover-card {transition: all 0.3s ease;}
            .hover-card:hover {transform: scale(1.02);box-shadow: 0 10px 25px rgba(0,0,0,0.2);}''',shared=True)
 app.on_startup(makeConnection)
 appBasePath = path.join(environ['USERPROFILE'],'PDF Creator')
 if not path.exists(appBasePath):mkdir(appBasePath)
-pdfFolder = path.join(appBasePath,'pdfs')
-if not path.exists(pdfFolder):mkdir(pdfFolder)
+pdfFolderPath = path.join(appBasePath,'pdfs')
+if not path.exists(pdfFolderPath):mkdir(pdfFolderPath)
 fontFolder = path.join(appBasePath,'Fonts')
 if not path.exists(fontFolder):mkdir(fontFolder)
 widgetFolder = path.join(appBasePath,'widgets')
 if not path.exists(widgetFolder):mkdir(widgetFolder)
-app.add_static_files('/static','Data1')
-app.add_static_files('/pdfs',pdfFolder)
+app.add_static_files('/static','Data')
+app.add_static_files('/pdfs',pdfFolderPath)
 ui.run(port=8085,)
