@@ -10,6 +10,7 @@ async def makeConnection():
     poolConnection = await aiomysql.create_pool(host='localhost',user='root',password='Nikish@2003',db='pdfUsers',autocommit=True)
 
 links = {}
+# PDF Editor Page
 @ui.page('/PDFEditor')
 async def main():
     email = app.storage.user['email']
@@ -88,6 +89,7 @@ async def main():
         def saveLinks(link,linkText,linkType):
             widgetMaster.links = [link,linkText,linkType]
 
+        # function to display the link dialog
         def linkMenu():
             with ui.dialog() as linkDialog,ui.card().classes('w-1/2'):
                 link = ui.checkbox('Make it as a Link')
@@ -188,7 +190,7 @@ async def main():
     with ui.row().classes('w-full gap-1'):
         with ui.card().classes('w-full').style('background-color: rgba(255,255,255,0.9); backdrop-filter: blur(0.5px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
             with ui.row().classes('w-full items-center justify-between gap-2 flex-wrap'):
-                ui.button('Back',color='#00fff2',on_click=lambda:ui.navigate.to(f'/MyPDFs'),icon='arrow_back')
+                ui.button('Back',color='#00fff2',on_click=lambda:ui.navigate.to('/MyPDFs'),icon='arrow_back')
                 with ui.row().classes('w-1/2 flex-wrap'):
                     ui.label('Widgets').classes('font-bold').props('dense').style('font-family:"Algerian";font-size:26px;font-weight:bold;')
                     with ui.dropdown_button('Select Widget',auto_close=True).classes('w-3/4'):
@@ -202,6 +204,7 @@ async def main():
             with ui.card().classes('w-full h-screen overflow-auto').style('background-color: rgba(1,1,1,0.6); backdrop-filter: blur(0.5px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
                 pdfViewer = ui.html('',sanitize=False).classes('w-full h-full')
 
+# My PDF Page
 @ui.page('/MyPDFs')
 async def home():
     ui.add_css('''body {background-image:url("/static/foggy-forest-landscape-dark-silhouette-mysterious-atmosphere-generated-by-ai.avif");background-size: cover;background-position: center;background-attachment: fixed;}''')
@@ -209,7 +212,7 @@ async def home():
     # function to add widgets to PDF Holder
     def openPdfEditor(currentPdfName):
         app.storage.user['pdf'] = currentPdfName
-        ui.navigate.to(f'/PDFEditor')
+        ui.navigate.to('/PDFEditor')
 
     async def addToWidget(currentPdfName,widgetPath):
         # fucntion to delete a pdf from database
@@ -256,7 +259,9 @@ async def home():
             ui.button('Save',icon='save',on_click=savePdfs,color='green').classes('w-full')
         pdfSaveDialog.open()
 
-    ui.button('New PDF',icon='add',color='green',on_click=addPdfs)
+    with ui.row().classes('w-full'):
+        ui.button('Back',icon='arrow_back',color='red',on_click=lambda:ui.navigate.to('/'))
+        ui.button('New PDF',icon='add',color='green',on_click=addPdfs)
     with ui.card().classes('p-4 w-full h-screen overflow-auto').style('background-color: rgba(1, 1, 1, 0.3); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
         pdfsHolder = ui.grid(columns=3).classes('w-full gap-2 items-start')
         data = []
@@ -270,9 +275,10 @@ async def home():
         except Exception as error:ui.notify(str(error),type='negative')
     ui.pagination(min=1,max=len(data)//9+1).classes('w-full item-center justify-center').props(f'v-model="current" :max="{len(data)//9+1}" direction-links boundary-links icon-first="skip_previous" icon-last="skip_next" icon-prev="fast_rewind" icon-next="fast_forward" color="grey" active-color="black"')
 
+# Registration Page
 @ui.page('/Register')
 def register():
-    ui.button('Back',color='red',on_click=lambda:ui.navigate.to('/'))
+    ui.button('Back',color='red',icon='arrow_back',on_click=lambda:ui.navigate.to('/'))
     # function to push data into mysql database
     async def pushData():
         currentEmail = email.value
@@ -292,6 +298,7 @@ def register():
         password = ui.input(label='Password',placeholder='Enter your Password',password=True,password_toggle_button=True).classes('w-full white-input').props('clearable')
         ui.button('Register',icon='person_add',on_click=pushData).classes('w-1/4')
 
+# Home Page
 @ui.page('/')
 def home():
     # function to check in login 
@@ -299,7 +306,7 @@ def home():
         def login():
             app.storage.user['authenticated'] = True
             app.storage.user['email'] = currentEmail
-            ui.navigate.to(f'/MyPDFs')
+            ui.navigate.to('/MyPDFs')
         currentEmail,currentPassword = email.value,password.value
         if currentEmail=='' or currentPassword=='':ui.notify('Please fill in all fields',type='warning');return
         try:
@@ -319,7 +326,6 @@ def home():
                .white-input .q-field__control:after {border-bottom: 2px solid white !important;}
                .white-input .q-field__append .q-icon {color: white !important;}
                .white-input .q-field__append .q-icon:hover {color: grey !important;}''',shared=True)
-    ui.button('Study',on_click=lambda:ui.navigate.to('/Study'))
     with ui.card().classes('absolute-center w-[50%] items-center').style('background-color: rgba(1, 1, 1, 0.7); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
         email = ui.input(label='Email',placeholder='Enter your Email').classes('w-full white-input').props('clearable')
         password = ui.input(label='Password',placeholder='Enter your Password',password=True,password_toggle_button=True).classes('w-full white-input').props('clearable')
