@@ -240,7 +240,9 @@ async def home(email):
             ui.button('Save',icon='save',on_click=savePdfs,color='green').classes('w-full')
         pdfSaveDialog.open()
 
-    ui.button('New PDF',icon='add',color='green',on_click=addPdfs)
+    with ui.row():
+        ui.button('Back',color='red',icon='arrow_back',on_click=lambda:ui.navigate.back())
+        ui.button('New PDF',icon='add',color='green',on_click=addPdfs)
     with ui.card().classes('p-4 w-full h-screen overflow-auto').style('background-color: rgba(1, 1, 1, 0.3); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
         pdfsHolder = ui.grid(columns=3).classes('w-full gap-2 items-start')
         data = []
@@ -254,9 +256,10 @@ async def home(email):
         except Exception as error:ui.notify(str(error),type='negative')
     ui.pagination(min=1,max=len(data)//9+1).classes('w-full item-center justify-center').props(f'v-model="current" :max="{len(data)//9+1}" direction-links boundary-links icon-first="skip_previous" icon-last="skip_next" icon-prev="fast_rewind" icon-next="fast_forward" color="grey" active-color="black"')
 
+# Registration Page
 @ui.page('/Register')
 def register():
-    ui.button('Back',color='red',on_click=lambda:ui.navigate.to('/'))
+    ui.button('Back',color='red',icon='arrow_back',on_click=lambda:ui.navigate.to('/'))
     # function to push data into mysql database
     async def pushData():
         currentEmail = email.value
@@ -276,6 +279,7 @@ def register():
         password = ui.input(label='Password',placeholder='Enter your Password',password=True,password_toggle_button=True).classes('w-full white-input').props('clearable')
         ui.button('Register',icon='person_add',on_click=pushData).classes('w-1/4')
 
+# application home page
 @ui.page('/')
 def home():
     async def checkLogin():
