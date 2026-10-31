@@ -4,21 +4,26 @@ from os import path,environ,mkdir,remove
 import time,aiomysql,shutil,json,pandas as pd
 
 poolConnection = None
+# function that makes the startup
 async def makeConnection():
     global poolConnection
     poolConnection = await aiomysql.create_pool(host='localhost',user='root',password='Nikish@2003',db='pdfUsers',autocommit=True)
 
 links = {}
-@ui.page('/{email}/{currentPdf}/PDFEditor')
-async def main(email,currentPdf):
+# PDF Editor Page
+@ui.page('/PDFEditor')
+async def main():
+    email = app.storage.user['email']
+    currentPdfName = app.storage.user['pdf']
     ui.add_css('''body {background-image:url("/static/Original.webp");background-size: cover;background-position: center;background-attachment: fixed;}''')
     # function that modifies the PDF's Properties
     def pdfProperties():
         with ui.dialog() as propertiesDialog,ui.card().classes('w-1/2 h-3/4'):
             with ui.row().classes('w-full items-center justify-between gap-2 flex-wrap'):
                 ui.label('PDF Properties').classes('font-bold').style('font-family:"Times New Roman";font-size:26px;font-weight:bold;')
-                ui.button('',icon='save',color='green')
+                ui.button('',icon='save',color='green',)
             ui.select(label='Orientation',options=['Portrait','Landscape'],value='Portrait').classes('w-full')
+            ui.select(label='Page Format',options=['A3','A4','A5','Letter'],value='A4').classes('w-full')
             encryptionCheck = ui.checkbox(text='Make PDF Encrypted').classes('w-full')
             ui.input(label="Creator's Password",placeholder="Enter Creator's Password").classes('w-full').bind_visibility_from(encryptionCheck,'value')
             ui.input(label="User's Password",placeholder="Enter User's Password").classes('w-full').bind_visibility_from(encryptionCheck,'value')
@@ -76,19 +81,22 @@ async def main(email,currentPdf):
 
     # function to add PDF Operations
     def add(operation):
+        # function to remove the link wrt the checkbox
         def removeLinkName(linkText,value):
             if not value:linkText.value = ''
 
+        # function to save the link
         def saveLinks(link,linkText,linkType):
             widgetMaster.links = [link,linkText,linkType]
 
+        # function to display the link dialog
         def linkMenu():
             with ui.dialog() as linkDialog,ui.card().classes('w-1/2'):
                 link = ui.checkbox('Make it as a Link')
                 linkText = ui.input(label='Link Text',placeholder='Enter the Link Text').classes('w-full').bind_enabled_from(link,'value')
                 link.on_value_change(lambda x:removeLinkName(linkText,x.value))
                 linkType = ui.select(options=['Add Link','Set Link'],value='Add Link',label='Link Type').classes('w-full').bind_enabled_from(link,'value')
-                ui.button(text='Save',icon='save',color='green',on_click=lambda:saveLinks(link.value,linkText.value,linkType.value)).classes('w-full')
+                ui.button(text='Save',icon='save',color='green',on_click=lambda:[saveLinks(link.value,linkText.value,linkType.value),linkDialog.close()]).classes('w-full')
             linkDialog.open()
 
         with widgetsSaved:
@@ -122,23 +130,28 @@ async def main(email,currentPdf):
                             tableTab = ui.tab('Table Tab',label='Table Tab').classes('w-full h-full border border-gray-400 rounded-lg')
                             graphTab = ui.tab('Graph Tab',label='Graph Tab').classes('w-full h-full border border-gray-400 rounded-lg')
                         with ui.tab_panels(tableTabs,value=tableTab).classes('w-full border border-gray-400 rounded-lg'):
+                            # function to fetch data from excel file
                             def fetchData():
                                 df = pd.read_excel(filePath.value,sheet_name=sheetWidget.value)
                                 df.dropna(how='all').dropna(axis=1,how='all')
                                 df.columns = df.iloc[0]
                                 widgetMaster.inputs = [df]
                                 ui.notify('Data Loaded Successfully.',type='positive')
+                            # function to fetch data from the json file
                             def readJson(currentFilePath):
                                 pd.read_json(currentFilePath)
+                            # function to fetch data from excel file
                             def readExcel(currentFilePath):
                                 try:
                                     sheets = pd.ExcelFile(currentFilePath).sheet_names
                                     sheetWidget.options,sheetWidget.value = sheets,sheets[0]
                                 except Exception as error:ui.notify(f'Error Loading File {error}',type='negative')
+                            # function to fetch data from csv file
                             def readCsv(currentFilePath):
                                 try:
                                     df = pd.read_csv(currentFilePath)
                                 except Exception as error:ui.notify(f'Error Loading File {error}',type='negative')
+                            # function that determines the file and it's extension
                             def fileLoader():
                                 currentFilePath = filePath.value
                                 file,extension = path.splitext(currentFilePath)
@@ -177,7 +190,7 @@ async def main(email,currentPdf):
     with ui.row().classes('w-full gap-1'):
         with ui.card().classes('w-full').style('background-color: rgba(255,255,255,0.9); backdrop-filter: blur(0.5px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
             with ui.row().classes('w-full items-center justify-between gap-2 flex-wrap'):
-                ui.button('Back',color='#00fff2',on_click=lambda:ui.navigate.to(f'/{email}/MyPDFs'),icon='arrow_back')
+                ui.button('Back',color='#00fff2',on_click=lambda:ui.navigate.to('/MyPDFs'),icon='arrow_back')
                 with ui.row().classes('w-1/2 flex-wrap'):
                     ui.label('Widgets').classes('font-bold').props('dense').style('font-family:"Algerian";font-size:26px;font-weight:bold;')
                     with ui.dropdown_button('Select Widget',auto_close=True).classes('w-3/4'):
@@ -191,10 +204,16 @@ async def main(email,currentPdf):
             with ui.card().classes('w-full h-screen overflow-auto').style('background-color: rgba(1,1,1,0.6); backdrop-filter: blur(0.5px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
                 pdfViewer = ui.html('',sanitize=False).classes('w-full h-full')
 
-@ui.page('/{email}/MyPDFs')
-async def home(email):
+# My PDF Page
+@ui.page('/MyPDFs')
+async def home():
     ui.add_css('''body {background-image:url("/static/foggy-forest-landscape-dark-silhouette-mysterious-atmosphere-generated-by-ai.avif");background-size: cover;background-position: center;background-attachment: fixed;}''')
+    email = app.storage.user['email']
     # function to add widgets to PDF Holder
+    def openPdfEditor(currentPdfName):
+        app.storage.user['pdf'] = currentPdfName
+        ui.navigate.to('/PDFEditor')
+
     async def addToWidget(currentPdfName,widgetPath):
         # fucntion to delete a pdf from database
         async def deletePdf(widget):
@@ -210,7 +229,7 @@ async def home(email):
                 ui.label(currentPdfName).classes('font-bold').style('font-family:"Arial Black";font-size:25px;font-weight:bold;')
                 with ui.row().classes('w-full items-center justify-between gap-2 flex-wrap'):
                     ui.button('Delete',icon='delete',color='red',on_click=lambda:deletePdf(widget)).classes('flex-1')
-                    ui.button('Editor',icon='picture_as_pdf',on_click=lambda:ui.navigate.to(f'/{email}/{currentPdfName}/PDFEditor')).classes('flex-1')
+                    ui.button('Editor',icon='picture_as_pdf',on_click=lambda:openPdfEditor(currentPdfName)).classes('flex-1')
 
     # function to create a new pdf
     async def addPdfs():
@@ -240,8 +259,8 @@ async def home(email):
             ui.button('Save',icon='save',on_click=savePdfs,color='green').classes('w-full')
         pdfSaveDialog.open()
 
-    with ui.row():
-        ui.button('Back',color='red',icon='arrow_back',on_click=lambda:ui.navigate.back())
+    with ui.row().classes('w-full'):
+        ui.button('Back',icon='arrow_back',color='red',on_click=lambda:ui.navigate.to('/'))
         ui.button('New PDF',icon='add',color='green',on_click=addPdfs)
     with ui.card().classes('p-4 w-full h-screen overflow-auto').style('background-color: rgba(1, 1, 1, 0.3); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
         pdfsHolder = ui.grid(columns=3).classes('w-full gap-2 items-start')
@@ -279,10 +298,15 @@ def register():
         password = ui.input(label='Password',placeholder='Enter your Password',password=True,password_toggle_button=True).classes('w-full white-input').props('clearable')
         ui.button('Register',icon='person_add',on_click=pushData).classes('w-1/4')
 
-# application home page
+# Home Page
 @ui.page('/')
 def home():
+    # function to check in login 
     async def checkLogin():
+        def login():
+            app.storage.user['authenticated'] = True
+            app.storage.user['email'] = currentEmail
+            ui.navigate.to('/MyPDFs')
         currentEmail,currentPassword = email.value,password.value
         if currentEmail=='' or currentPassword=='':ui.notify('Please fill in all fields',type='warning');return
         try:
@@ -293,7 +317,7 @@ def home():
                     if not passwordCheck:ui.notify("Email doesn't exists.",type='info',color='red');return
                     elif currentPassword!=passwordCheck[0]:ui.notify('Invalid Password.');return
                     ui.notify('Login Successfully',type='positive')
-                    ui.timer(0.6,lambda:ui.navigate.to(f'/{currentEmail}/MyPDFs'),immediate=False)
+                    ui.timer(0.6,lambda:login(),immediate=False)
         except Exception as error:ui.notify(str(error),type='negative')
     ui.add_css('''body {background-image: url("/static/mountain.webp");background-size: cover;background-position: center;background-attachment: fixed;}
                .white-input .q-field__label {color: white !important;}
@@ -302,7 +326,6 @@ def home():
                .white-input .q-field__control:after {border-bottom: 2px solid white !important;}
                .white-input .q-field__append .q-icon {color: white !important;}
                .white-input .q-field__append .q-icon:hover {color: grey !important;}''',shared=True)
-    ui.button('Study',on_click=lambda:ui.navigate.to('/Study'))
     with ui.card().classes('absolute-center w-[50%] items-center').style('background-color: rgba(1, 1, 1, 0.7); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
         email = ui.input(label='Email',placeholder='Enter your Email').classes('w-full white-input').props('clearable')
         password = ui.input(label='Password',placeholder='Enter your Password',password=True,password_toggle_button=True).classes('w-full white-input').props('clearable')
@@ -323,4 +346,4 @@ widgetFolder = path.join(appBasePath,'widgets')
 if not path.exists(widgetFolder):mkdir(widgetFolder)
 app.add_static_files('/static','Data')
 app.add_static_files('/pdfs',pdfFolderPath)
-ui.run(port=8085,)
+ui.run(port=8085,storage_secret='')
