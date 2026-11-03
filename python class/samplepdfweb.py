@@ -67,6 +67,8 @@ async def main():
                                 row = dataTable.row()
                                 for value in data:
                                     row.cell(str(value))
+                        # pdf.ln(10)
+                        
                     elif widgetType=='Image':
                         currentFilePath = currentInputs[0].value
                         pdf.set_link(links['Info'])
@@ -124,7 +126,7 @@ async def main():
                     elif operation=='Link':
                         linkTextWidget = ui.input(label='Link Text',placeholder='Enter the Link Text').classes('w-full').props('outlined dense')
                         linkUrlWidget = ui.input(label='Link URL',placeholder='Enter link here').classes('w-full').props('outlined dense')
-                        widgetMaster.inputs.append(linkTextWidget);widgetMaster.inputs.append(linkUrlWidget)
+                        widgetMaster.inputs += [linkTextWidget,linkUrlWidget]
                     elif operation=='Table':
                         with ui.tabs().classes('w-full') as tableTabs:
                             tableTab = ui.tab('Table Tab',label='Table Tab').classes('w-full h-full border border-gray-400 rounded-lg')
@@ -137,44 +139,20 @@ async def main():
                                 df.columns = df.iloc[0]
                                 widgetMaster.inputs = [df]
                                 ui.notify('Data Loaded Successfully.',type='positive')
-                            # function to fetch data from the json file
-                            def readJson(currentFilePath):
-                                pd.read_json(currentFilePath)
-                            # function to fetch data from excel file
-                            def readExcel(currentFilePath):
-                                try:
-                                    sheets = pd.ExcelFile(currentFilePath).sheet_names
-                                    sheetWidget.options,sheetWidget.value = sheets,sheets[0]
-                                except Exception as error:ui.notify(f'Error Loading File {error}',type='negative')
-                            # function to fetch data from csv file
-                            def readCsv(currentFilePath):
-                                try:
-                                    df = pd.read_csv(currentFilePath)
-                                except Exception as error:ui.notify(f'Error Loading File {error}',type='negative')
                             # function that determines the file and it's extension
                             def fileLoader():
                                 currentFilePath = filePath.value
                                 file,extension = path.splitext(currentFilePath)
-                                if extension=='.xlsx':excelExpansion.enable();excelExpansion.value=True;readExcel(currentFilePath)
-                                elif extension=='.csv':csvExpansion.enable();csvExpansion.value=True;readCsv(currentFilePath)
-                                elif extension=='.json':jsonExpansion.enable();jsonExpansion.value=True;readJson(currentFilePath)
-                                else:ui.notify("This type of file can't be Uploaded.",type='warning')
+                                if extension!='.xlsx':ui.notify("Only the Excel files can be Uploaded.",type='warning')
+                                try:
+                                    sheets = pd.ExcelFile(currentFilePath).sheet_names
+                                    sheetWidget.options,sheetWidget.value = sheets,sheets[0]
+                                except Exception as error:ui.notify(f'Error Loading File {error}',type='negative')
                             with ui.tab_panel(tableTab).classes('w-full h-full border border-gray-400 rounded-lg'):
                                 filePath = ui.input(label='Data File',placeholder='Enter the path of the data file').classes('w-full').props('outlined dense')
                                 ui.button(text='Upload File',icon='refresh',on_click=fileLoader)
-                                excelExpansion = ui.expansion(text='Excel File').classes('w-full')
-                                excelExpansion.disable()
-                                with excelExpansion:
-                                    sheetWidget = ui.select(label='Select the Sheet',options=[]).classes('w-full')
-                                    ui.button('Load Data',on_click=fetchData).bind_enabled_from(sheetWidget,'value')
-                                csvExpansion = ui.expansion(text='CSV File').classes('w-full')
-                                csvExpansion.disable()
-                                with csvExpansion:
-                                    ui.button('Load Data')
-                                jsonExpansion = ui.expansion(text='JSON File').classes('w-full')
-                                jsonExpansion.disable()
-                                with jsonExpansion:
-                                    ui.button('Load Data')
+                                sheetWidget = ui.select(label='Select the Sheet',options=[]).classes('w-full')
+                                ui.button('Load Data',on_click=fetchData).bind_enabled_from(sheetWidget,'value')
                             with ui.tab_panel(graphTab).classes('w-full h-full border border-gray-400 rounded-lg'):
                                 chartCheck = ui.checkbox(text='Add Chart for this Table').classes('w-full')
                                 ui.select(label='Select Chart Type',options=['Bar Chart','Pie Chart','Line Chart'],value='Bar Chart').classes('w-full').bind_visibility_from(chartCheck,'value')
@@ -184,9 +162,13 @@ async def main():
                     elif operation=='Line Break':
                         inputWidget = ui.input(label=operation,placeholder=f'Enter {operation} here',value='5').classes('w-full').props('outlined dense')
                         widgetMaster.inputs.append(inputWidget)
+                    elif operation=='Barcodes':
+                        barcodeContent = ui.input(label='Barcode Content',placeholder='Enter the Barcode Content').classes('w-full').props('outlined dense')
+                        barcodeType = ui.select(label='Barcode Type',options=['QR','Code128','Code39'],value='QR').classes('w-full').props('outlined dense')
+                        widgetMaster.inputs += [barcodeContent, barcodeType]
                     widgetMaster.type = operation
 
-    pdfWidgets = ['New Page','Text','Table','Link','Image','Line Break']
+    pdfWidgets = ['New Page','Text','Table','Link','Image','Line Break','Barcodes']
     with ui.row().classes('w-full gap-1'):
         with ui.card().classes('w-full').style('background-color: rgba(255,255,255,0.9); backdrop-filter: blur(0.5px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
             with ui.row().classes('w-full items-center justify-between gap-2 flex-wrap'):
@@ -346,4 +328,4 @@ widgetFolder = path.join(appBasePath,'widgets')
 if not path.exists(widgetFolder):mkdir(widgetFolder)
 app.add_static_files('/static','Data')
 app.add_static_files('/pdfs',pdfFolderPath)
-ui.run(port=8085,storage_secret='')
+ui.run(port=8085,storage_secret='',host='0.0.0.0',title='PDF Creator')
