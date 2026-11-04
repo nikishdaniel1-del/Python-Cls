@@ -5,7 +5,6 @@ from matplotlib.figure import FigureBase
 import time,aiomysql,shutil,json,pandas as pd
 
 # initialization
-
 poolConnection = None
 # function that makes the startup
 async def makeConnection():
@@ -14,13 +13,13 @@ async def makeConnection():
 
 links = {}
 # PDF Editor Page
-@ui.page('/PDFEditor')
+@ui.page('/PDFEditor',dark=True)
 async def main():
     email = app.storage.user['email']
     currentPdfName = app.storage.user['pdf']
     currentWidgetPath = path.join(widgetFolder,f"{currentPdfName}.json")
     try:
-        with open(currentWidgetPath,'r') as jsonFile:pdfProperties = json.load(jsonFile)
+        with open(currentWidgetPath,'r') as jsonFile:pdfProperty = json.load(jsonFile)
     except Exception as error:ui.notify(f"Error loading PDF properties: {error}", color='negative');return
     ui.add_css('''body {background-image:url("/static/Original.webp");background-size: cover;background-position: center;background-attachment: fixed;}''')
     # function that modifies the PDF's Properties
@@ -29,19 +28,19 @@ async def main():
             with ui.row().classes('w-full items-center justify-between gap-2 flex-wrap'):
                 ui.label('PDF Properties').classes('font-bold').style('font-family:"Times New Roman";font-size:26px;font-weight:bold;')
                 ui.button('',icon='save',color='green',)
-            ui.select(label='Orientation',options=['Portrait','Landscape'],value=pdfProperties['Orientation']).classes('w-full')
-            ui.select(label='Page Format',options=['A3','A4','A5','Letter'],value=pdfProperties['Page Format']).classes('w-full')
-            encryptionCheck = ui.checkbox(text='Make PDF Encrypted').classes('w-full')
-            ui.input(label="Creator's Password",placeholder="Enter Creator's Password").classes('w-full').bind_visibility_from(encryptionCheck,'value')
-            ui.input(label="User's Password",placeholder="Enter User's Password").classes('w-full').bind_visibility_from(encryptionCheck,'value')
+            ui.select(label='Orientation',options=['Portrait','Landscape'],value=pdfProperty['Orientation']).classes('w-full')
+            ui.select(label='Page Format',options=['A3','A4','A5','Letter'],value=pdfProperty['Page Format']).classes('w-full')
+            encryptionCheck = ui.checkbox(text='Make PDF Encrypted',value=pdfProperty['Encrypted']).classes('w-full')
+            ui.input(label="Creator's Password",placeholder="Enter Creator's Password",value=pdfProperty['CreatorPassword']).classes('w-full').bind_visibility_from(encryptionCheck,'value')
+            ui.input(label="User's Password",placeholder="Enter User's Password",value=pdfProperty['UserPassword']).classes('w-full').bind_visibility_from(encryptionCheck,'value')
             for i in ['Subject','Author','Creator','Producer']:
-                ui.input(label=i,placeholder=f"Enter PDF's {i}",value='').classes('w-full')
+                ui.input(label=i,placeholder=f"Enter PDF's {i}",value=pdfProperty.get(i,'')).classes('w-full')
         propertiesDialog.open()
 
     # function that generates pdf
-    async def generatePDF(currentPdf='output'):
+    async def generatePDF():
         try:
-            pdf = FPDF(orientation='P',format='A4')
+            pdf = FPDF(orientation=pdfProperty['Orientation'],format=pdfProperty['Page Format'])
             pdf.add_page()
             pdf.set_font("Helvetica", size=12)
             for currentWidget in widgetsSaved:
@@ -82,8 +81,8 @@ async def main():
                         except Exception as error:ui.notify(f"Error adding image '{currentFilePath}': {error}", color='negative');return
                     elif widgetType=='Line Break':pdf.ln(int(currentInputs[0].value))
                 except Exception as error:ui.notify(f"Error processing widget '{widgetType}': {error}", color='negative');return
-            pdf.output(path.join(pdfFolderPath,f"{currentPdf}.pdf"))
-            pdfViewer.set_content(f'''<iframe src="/pdfs/{currentPdf}.pdf?v={time.time_ns()}" style="width: 100%; height: 100%; border: none;"></iframe>''')
+            pdf.output(pdfPath)
+            pdfViewer.set_content(f'''<iframe src="/pdfs/{currentPdfName}.pdf?v={time.time_ns()}" style="width: 100%; height: 100%; border: none;"></iframe>''')
         except Exception as error:ui.notify(f"Error generating PDF: {error}", color='negative');return
 
     # function to add PDF Operations
@@ -107,7 +106,7 @@ async def main():
             linkDialog.open()
 
         with widgetsSaved:
-            with ui.card().classes('w-full items-center gap-1 hover-card').style('background-color: rgba(255,255,255,0.9); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);') as widgetMaster:
+            with ui.card().classes('w-full items-center gap-1 hover-card').style('background-color: rgba(0,0,0,0.9); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(255,255,255,0.5);') as widgetMaster:
                 widgetMaster.inputs = []
                 widgetMaster.links = ['','','']
                 with ui.row().classes('w-full items-center justify-between gap-2 flex-wrap'):
@@ -115,6 +114,7 @@ async def main():
                     ui.label(operation).classes('font-bold').style('font-family:"Algerian";font-size:25px;font-weight:bold;')
                     ui.button('',icon='delete',color='red',on_click=lambda:widgetMaster.delete())
                     if operation not in ['New Page','Line Break','Link','Barcodes']:ui.button('',icon='link',on_click=linkMenu)
+                    if operation=='New Page':return
                 with ui.expansion('Properties',icon='settings').classes('w-full'):
                     if operation=='Text':
                         with ui.tabs().classes('w-full') as textTabs:
@@ -176,11 +176,11 @@ async def main():
     pdfWidgets = ['New Page','Text','Table','Link','Image','Line Break','Barcodes']
     with ui.row().classes('w-full gap-1'):
 
-        with ui.card().classes('w-full').style('background-color: rgba(255,255,255,0.9); backdrop-filter: blur(0.5px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
+        with ui.card().classes('w-full').style('background-color: rgba(255,255,255,0.7); backdrop-filter: blur(0.5px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
             with ui.row().classes('w-full items-center justify-between gap-2 flex-wrap'):
-                ui.button('Back',color='#00fff2',on_click=lambda:ui.navigate.to('/MyPDFs'),icon='arrow_back')
+                ui.button('Back',color='#00fff2',on_click=lambda:ui.navigate.to('/MyPDFs'),icon='arrow_back').props('text-color="black"')
                 with ui.row().classes('w-1/2 flex-wrap'):
-                    ui.label('Widgets').classes('font-bold').props('dense').style('font-family:"Algerian";font-size:26px;font-weight:bold;')
+                    ui.label('Widgets').classes('font-bold').props('dense').style('font-family:"Algerian";font-size:26px;font-weight:bold;color:#000000;')
                     with ui.dropdown_button('Select Widget',auto_close=True).classes('w-3/4'):
                         for i in pdfWidgets:
                             ui.item(i,on_click=lambda widget=i: add(widget)).classes('w-full')
@@ -188,13 +188,20 @@ async def main():
                 ui.button('Properties',icon='settings',color='red',on_click=pdfProperties)
 
         with ui.grid(columns='30% 70%').classes('gap-1 w-full'):
-            widgetsSaved = ui.card().classes('w-full h-screen overflow-auto').style('background-color: rgba(1,1,1,0.6); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);')
+            widgetsSaved = ui.card().classes('w-full h-screen overflow-auto').style('background-color: rgba(1,1,1,0.3); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);')
             widgetsSaved.make_sortable(handle='.handle')
-            with ui.card().classes('w-full h-screen overflow-auto').style('background-color: rgba(1,1,1,0.6); backdrop-filter: blur(0.5px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
+            with ui.card().classes('w-full h-screen overflow-auto').style('background-color: rgba(1,1,1,0); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
+                pdfPath = path.join(pdfFolderPath,f"{currentPdfName}.pdf")
                 pdfViewer = ui.html('',sanitize=False).classes('w-full h-full')
+                if path.exists(pdfPath):
+                    content = f'''<iframe src="/pdfs/{currentPdfName}.pdf?v={time.time_ns()}" style="width: 100%; height: 100%; border: none;"></iframe>'''
+                else:
+                    content = '''<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#ffffff;color:#555;text-align:center;">
+            <div style="font-size:70px;">📄</div><h2 style="margin:10px 0;">PDF Not Found</h2><p style="color:#888;">Unable to load the requested PDF.</p></div>'''
+                pdfViewer.set_content(content)
 
 # My PDF Page
-@ui.page('/MyPDFs')
+@ui.page('/MyPDFs',dark=True)
 async def home():
     ui.add_css('''body {background-image:url("/static/foggy-forest-landscape-dark-silhouette-mysterious-atmosphere-generated-by-ai.avif");background-size: cover;background-position: center;background-attachment: fixed;}''')
     email = app.storage.user['email']
@@ -240,7 +247,7 @@ async def home():
             else:pdfName.style('border:2px white')
             jsonPath = path.join(widgetFolder,pdfNameValue+'.json')
             pdfsHolder.jsonPath = jsonPath
-            currentPdfWidgets = {'Name':pdfNameValue,'Author':'','Creator':'','Producer':'','Page Format':'A4','Orientation':'Portrait','Encrypted':False,'CreatorPassword':'','UserPassword':'','Widgets':[]}
+            currentPdfWidgets = {'Name':pdfNameValue,'Subject':'','Author':'','Creator':'','Producer':'','Page Format':'A4','Orientation':'Portrait','Encrypted':False,'CreatorPassword':'','UserPassword':'','Widgets':[]}
             with open(jsonPath,'w') as jsonFile:json.dump(currentPdfWidgets,jsonFile)
             await savePdfMysql(pdfNameValue)
 
@@ -253,7 +260,7 @@ async def home():
         ui.button('Back',icon='arrow_back',color='red',on_click=lambda:ui.navigate.to('/'))
         ui.button('New PDF',icon='add',color='green',on_click=addPdfs)
 
-    with ui.card().classes('p-4 w-full h-screen overflow-auto').style('background-color: rgba(1, 1, 1, 0.3); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
+    with ui.card().classes('p-4 w-full h-screen overflow-auto').style('background-color: rgba(1, 1, 1, 0); backdrop-filter: blur(1px); border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);'):
         pdfsHolder = ui.grid(columns=3).classes('w-full gap-2 items-start')
         data = []
         try:
@@ -267,7 +274,7 @@ async def home():
     ui.pagination(min=1,max=len(data)//9+1).classes('w-full item-center justify-center').props(f'v-model="current" :max="{len(data)//9+1}" direction-links boundary-links icon-first="skip_previous" icon-last="skip_next" icon-prev="fast_rewind" icon-next="fast_forward" color="grey" active-color="black"')
 
 # Registration Page
-@ui.page('/Register')
+@ui.page('/Register',dark=True)
 def register():
     ui.button('Back',color='red',icon='arrow_back',on_click=lambda:ui.navigate.to('/'))
     # function to push data into mysql database
@@ -291,7 +298,7 @@ def register():
         ui.button('Register',icon='person_add',on_click=pushData).classes('w-1/4')
 
 # Home Page
-@ui.page('/')
+@ui.page('/',dark=True)
 def home():
     # function to check in login 
     async def checkLogin():
@@ -323,10 +330,10 @@ def home():
         password = ui.input(label='Password',placeholder='Enter your Password',password=True,password_toggle_button=True).classes('w-full white-input').props('clearable')
         with ui.row().classes('w-full flex-wrap gap-2 justify-center'):
             ui.button('Register',icon='person_add',on_click=lambda:ui.navigate.to('/Register')).classes('w-1/4 flex-1')
-            ui.button('Login',icon='login',on_click=checkLogin,color="white").classes('w-1/4 flex-1')
+            ui.button('Login',icon='login',on_click=checkLogin,color="red").classes('w-1/4 flex-1')
 
 ui.add_css('''.hover-card {transition: all 0.3s ease;}
-           .hover-card:hover {transform: scale(1.02);box-shadow: 0 10px 25px rgba(0,0,0,0.2);}''',shared=True)
+           .hover-card:hover {transform: scale(1.02);box-shadow: 0 10px 25px rgba(255,255,255,0.2);}''',shared=True)
 app.on_startup(makeConnection)
 appBasePath = path.join(environ['USERPROFILE'],'PDF Creator')
 if not path.exists(appBasePath):mkdir(appBasePath)
