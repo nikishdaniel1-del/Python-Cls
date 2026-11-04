@@ -19,7 +19,9 @@ async def main():
     currentPdfName = app.storage.user['pdf']
     currentWidgetPath = path.join(widgetFolder,f"{currentPdfName}.json")
     try:
-        with open(currentWidgetPath,'r') as jsonFile:pdfProperty = json.load(jsonFile)
+        with open(currentWidgetPath,'r') as jsonFile:
+            pdfProperty = json.load(jsonFile)
+            currentPdfWidget = pdfProperty['Widgets']
     except Exception as error:ui.notify(f"Error loading PDF properties: {error}", color='negative');return
     ui.add_css('''body {background-image:url("/static/Original.webp");background-size: cover;background-position: center;background-attachment: fixed;}''')
     # function that modifies the PDF's Properties
@@ -197,7 +199,7 @@ async def main():
                     content = f'''<iframe src="/pdfs/{currentPdfName}.pdf?v={time.time_ns()}" style="width: 100%; height: 100%; border: none;"></iframe>'''
                 else:
                     content = '''<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#ffffff;color:#555;text-align:center;">
-            <div style="font-size:70px;">📄</div><h2 style="margin:10px 0;">PDF Not Found</h2><p style="color:#888;">Unable to load the requested PDF.</p></div>'''
+                    <div style="font-size:70px;">📄</div><h2 style="margin:10px 0;">PDF Not Found</h2><p style="color:#888;">Unable to load the requested PDF.</p></div>'''
                 pdfViewer.set_content(content)
 
 # My PDF Page
@@ -247,7 +249,8 @@ async def home():
             else:pdfName.style('border:2px white')
             jsonPath = path.join(widgetFolder,pdfNameValue+'.json')
             pdfsHolder.jsonPath = jsonPath
-            currentPdfWidgets = {'Name':pdfNameValue,'Subject':'','Author':'','Creator':'','Producer':'','Page Format':'A4','Orientation':'Portrait','Encrypted':False,'CreatorPassword':'','UserPassword':'','Widgets':[]}
+            # default values for the pdf properties
+            currentPdfWidgets = {'Name':pdfNameValue,'Index':0,'Subject':'A Sample PDF','Author':'','Creator':'','Producer':'','Page Format':'A4','Orientation':'Portrait','Encrypted':False,'CreatorPassword':'','UserPassword':'','Widgets':{}}
             with open(jsonPath,'w') as jsonFile:json.dump(currentPdfWidgets,jsonFile)
             await savePdfMysql(pdfNameValue)
 
